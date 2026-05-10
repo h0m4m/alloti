@@ -1,7 +1,18 @@
-export function formatCurrency(amount: number): string {
+let _currency = "USD";
+
+export function setCurrencyCode(code: string) {
+  _currency = code;
+}
+
+export function getCurrencyCode() {
+  return _currency;
+}
+
+export function formatCurrency(amount: number, currency?: string): string {
+  const code = currency || _currency;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: code,
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(amount);

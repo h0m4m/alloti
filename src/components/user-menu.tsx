@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { LogOut, Moon, Sun, Monitor, User } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Moon, Sun, Monitor, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,7 +46,7 @@ export function UserMenu({ name, email, image }: Props) {
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-xs">
+        <DialogContent className="sm:max-w-xs max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="sr-only">Account</DialogTitle>
             <DialogDescription className="sr-only">
@@ -110,6 +111,21 @@ export function UserMenu({ name, email, image }: Props) {
               </Button>
             </div>
           </div>
+
+          <Separator />
+
+          {/* Settings */}
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+          >
+            <Settings className="h-4 w-4" />
+            <span>Settings</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              Preferences, export, rules
+            </span>
+          </Link>
 
           <Separator />
 

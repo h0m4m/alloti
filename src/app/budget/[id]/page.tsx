@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getBudgetPeriod, getExpenses } from "@/lib/actions";
+import { getBudgetPeriod, getExpenses, getIncomes } from "@/lib/actions";
 import { BudgetDetailView } from "@/components/budget-detail-view";
 
 export default async function BudgetDetailPage({
@@ -8,13 +8,15 @@ export default async function BudgetDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const period = await getBudgetPeriod(id);
+  const [period, expenses, incomes] = await Promise.all([
+    getBudgetPeriod(id),
+    getExpenses(id),
+    getIncomes(id),
+  ]);
 
   if (!period) notFound();
 
-  const expenses = await getExpenses(id);
-
   return (
-    <BudgetDetailView period={period} expenses={expenses} />
+    <BudgetDetailView period={period} expenses={expenses} incomes={incomes} />
   );
 }

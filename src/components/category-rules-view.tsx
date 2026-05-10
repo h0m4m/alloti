@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Plus,
   Trash2,
   Sparkles,
   BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,24 +107,17 @@ export function CategoryRulesView({ rules, categoryNames }: Props) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-8 space-y-6">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+      <div className="flex items-center justify-between sticky top-0 z-30 bg-background pt-4 pb-2 -mt-4 -mx-4 px-4 sm:static sm:z-auto sm:bg-transparent sm:pt-0 sm:pb-0 sm:mt-0 sm:mx-0 sm:px-0">
+        <PageHeader crumbs={[{ label: "Home", href: "/" }, { label: "Settings", href: "/settings" }]} title="Category Rules">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Category Rules</h1>
+            <h1 className="text-xl font-bold">Category Rules</h1>
             <p className="text-xs text-muted-foreground">
               Auto-suggest categories when adding expenses
             </p>
           </div>
-        </div>
+        </PageHeader>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"

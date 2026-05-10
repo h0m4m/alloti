@@ -2,7 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
+import {
+  Plus,
+  Trash2,
+  X,
+  ArrowLeftRight,
+  Copy,
+  BookmarkPlus,
+  ClipboardList,
+  Paperclip,
+  Pencil,
+} from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -16,6 +29,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { AddExpenseForm } from "@/components/add-expense-form";
+import { EditExpenseForm } from "@/components/edit-expense-form";
+import { TransferMoneyForm } from "@/components/transfer-money-form";
+import { SaveTemplateDialog } from "@/components/save-template-dialog";
+import { ReceiptPreview } from "@/components/receipt-preview";
 import {
   formatCurrency,
   formatDateShort,
@@ -24,31 +41,39 @@ import {
   percentSpent,
 } from "@/lib/format";
 import { deleteBudgetPeriod, deleteExpense } from "@/lib/actions";
-import type { BudgetPeriod, Expense } from "@/lib/types";
+import type { BudgetPeriod, Expense, Income } from "@/lib/types";
 
 export function BudgetDetailView({
   period,
   expenses,
+  incomes = [],
 }: {
   period: BudgetPeriod;
   expenses: Expense[];
+  incomes?: Income[];
 }) {
   const router = useRouter();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [receiptExpense, setReceiptExpense] = useState<Expense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const totalSpent = period.categories.reduce((s, c) => s + c.spent, 0);
   const totalPct = percentSpent(totalSpent, period.totalBudget);
   const days = daysRemaining(period.endDate);
   const isActive = new Date(period.endDate) >= new Date();
+  const totalIncome = incomes.reduce((s, i) => s + i.amount, 0);
 
   const categoryMap = new Map(period.categories.map((c) => [c._id, c]));
 
   async function handleDelete() {
     setDeleting(true);
     await deleteBudgetPeriod(period._id);
+    toast.success("Budget deleted", { description: period.name });
     router.push("/");
   }
 
@@ -60,43 +85,47 @@ export function BudgetDetailView({
       expense.amount
     );
     router.refresh();
+    toast.success("Expense deleted", {
+      description: `${formatCurrency(expense.amount)} — ${expense.description}`,
+    });
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-8 space-y-6">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold">{period.name}</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            {formatDateShort(period.startDate)} –{" "}
-            {formatDateShort(period.endDate)}
-            {isActive && ` · ${days}d left`}
-          </p>
+      <div className="flex items-center gap-3 sticky top-0 z-30 bg-background pt-4 pb-2 -mt-4 -mx-4 px-4 sm:static sm:z-auto sm:bg-transparent sm:pt-0 sm:pb-0 sm:mt-0 sm:mx-0 sm:px-0">
+        <PageHeader crumbs={[{ label: "Home", href: "/" }]} title={period.name}>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold truncate">{period.name}</h1>
+            <p className="text-xs text-muted-foreground">
+              {formatDateShort(period.startDate)} –{" "}
+              {formatDateShort(period.endDate)}
+              {isActive && ` · ${days}d left`}
+            </p>
+          </div>
+        </PageHeader>
+        <div className="flex items-center gap-1 ml-auto shrink-0">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 hidden sm:flex"
+            onClick={() => {
+              setSelectedCategory(null);
+              setShowAddExpense(true);
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Expense
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground"
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-1.5 hidden sm:flex"
-          onClick={() => {
-            setSelectedCategory(null);
-            setShowAddExpense(true);
-          }}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add Expense
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground"
-          onClick={() => setShowDeleteConfirm(true)}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Overall Progress */}
@@ -125,25 +154,90 @@ export function BudgetDetailView({
         </CardContent>
       </Card>
 
+      {/* Income Summary */}
+      {incomes.length > 0 && (
+        <Card>
+          <CardContent className="p-4 sm:p-6 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <p className="text-xs text-muted-foreground">
+                Income this period
+              </p>
+              <p className="text-sm font-medium text-green-600">
+                +{formatCurrency(totalIncome)}
+              </p>
+            </div>
+            <div className="text-right space-y-0.5">
+              <p className="text-xs text-muted-foreground">
+                Surplus / Deficit
+              </p>
+              <p
+                className={`text-sm font-medium ${totalIncome - totalSpent >= 0 ? "text-green-600" : "text-destructive"}`}
+              >
+                {formatCurrency(totalIncome - totalSpent)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Actions */}
+      {/* Floating Action Button - mobile */}
+      <button
+        className="fixed bottom-20 right-4 z-40 sm:hidden flex items-center justify-center h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
+        onClick={() => {
+          setSelectedCategory(null);
+          setShowAddExpense(true);
+        }}
+      >
+        <Plus className="h-5 w-5" />
+      </button>
+
+      <div className="flex flex-wrap gap-2">
+        <Link href={`/budget/${period._id}/edit`}>
+          <Button size="sm" variant="outline" className="gap-1.5">
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </Button>
+        </Link>
+        {period.categories.length >= 2 && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => setShowTransfer(true)}
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5" />
+            Move Money
+          </Button>
+        )}
+        <Link href={`/budget/new?mode=duplicate&source=${period._id}`}>
+          <Button size="sm" variant="outline" className="gap-1.5">
+            <Copy className="h-3.5 w-3.5" />
+            Duplicate
+          </Button>
+        </Link>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => setShowSaveTemplate(true)}
+        >
+          <BookmarkPlus className="h-3.5 w-3.5" />
+          Save Template
+        </Button>
+        <Link href={`/budget/${period._id}/review`}>
+          <Button size="sm" variant="outline" className="gap-1.5">
+            <ClipboardList className="h-3.5 w-3.5" />
+            Review
+          </Button>
+        </Link>
+      </div>
+
       {/* Desktop: two-column layout | Mobile: stacked */}
       <div className="grid gap-6 lg:grid-cols-5">
         {/* Categories — wider column */}
         <div className="lg:col-span-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium">Categories</h2>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 h-8 sm:hidden"
-              onClick={() => {
-                setSelectedCategory(null);
-                setShowAddExpense(true);
-              }}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add Expense
-            </Button>
-          </div>
+          <h2 className="text-sm font-medium">Categories</h2>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {period.categories.map((cat) => {
@@ -179,12 +273,20 @@ export function BudgetDetailView({
 
                     <div className="flex justify-between text-xs">
                       <span className={isOver ? "text-destructive" : ""}>
-                        {formatCurrency(cat.spent)}
+                        {formatCurrency(cat.spent)} spent
                       </span>
                       <span className="text-muted-foreground">
-                        {formatCurrency(cat.allocated)}
+                        of {formatCurrency(cat.allocated)}
                       </span>
                     </div>
+
+                    <p
+                      className={`text-xs font-medium ${isOver ? "text-destructive" : "text-muted-foreground"}`}
+                    >
+                      {isOver
+                        ? `${formatCurrency(cat.spent - cat.allocated)} over budget`
+                        : `${formatCurrency(cat.allocated - cat.spent)} remaining`}
+                    </p>
 
                     <Progress
                       value={Math.min(pct, 100)}
@@ -202,12 +304,28 @@ export function BudgetDetailView({
                               <span className="truncate text-muted-foreground">
                                 {exp.description}
                               </span>
+                              {exp.hasAttachment && (
+                                <button
+                                  onClick={() => setReceiptExpense(exp)}
+                                  className="shrink-0"
+                                >
+                                  <Paperclip className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                                </button>
+                              )}
                               <span className="text-muted-foreground/60 shrink-0">
                                 {formatDateShort(exp.date)}
                               </span>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                               <span>{formatCurrency(exp.amount)}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => setEditingExpense(exp)}
+                              >
+                                <Pencil className="h-2.5 w-2.5" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -263,12 +381,27 @@ export function BudgetDetailView({
                                 </span>
                               )}
                               <span>{formatDate(exp.date)}</span>
+                              {exp.hasAttachment && (
+                                <button
+                                  onClick={() => setReceiptExpense(exp)}
+                                >
+                                  <Paperclip className="h-3 w-3 hover:text-primary" />
+                                </button>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <span className="text-sm font-medium">
                               {formatCurrency(exp.amount)}
                             </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => setEditingExpense(exp)}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -298,6 +431,32 @@ export function BudgetDetailView({
         defaultCategoryId={selectedCategory}
       />
 
+      {/* Transfer Money */}
+      <TransferMoneyForm
+        open={showTransfer}
+        onClose={() => setShowTransfer(false)}
+        budgetPeriodId={period._id}
+        categories={period.categories}
+      />
+
+      {/* Save as Template */}
+      <SaveTemplateDialog
+        open={showSaveTemplate}
+        onClose={() => setShowSaveTemplate(false)}
+        budgetPeriodId={period._id}
+        budgetName={period.name}
+      />
+
+      {/* Edit Expense */}
+      {editingExpense && (
+        <EditExpenseForm
+          open={!!editingExpense}
+          onClose={() => setEditingExpense(null)}
+          expense={editingExpense}
+          categories={period.categories}
+        />
+      )}
+
       {/* Delete Confirmation */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent>
@@ -325,6 +484,17 @@ export function BudgetDetailView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Receipt Preview */}
+      {receiptExpense && (
+        <ReceiptPreview
+          expenseId={receiptExpense._id}
+          expenseDescription={receiptExpense.description}
+          open={!!receiptExpense}
+          onClose={() => setReceiptExpense(null)}
+          onDeleted={() => router.refresh()}
+        />
+      )}
     </div>
   );
 }

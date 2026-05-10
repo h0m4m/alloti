@@ -7,6 +7,7 @@ export interface IExpense extends Document {
   description: string;
   amount: number;
   date: Date;
+  hasAttachment: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,6 +23,7 @@ const ExpenseSchema = new Schema<IExpense>(
     description: { type: String, required: true },
     amount: { type: Number, required: true },
     date: { type: Date, required: true, default: Date.now },
+    hasAttachment: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

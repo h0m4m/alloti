@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Target } from "lucide-react";
+import { Plus, Target } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -46,31 +47,29 @@ export function GoalDetailView({ goal, contributions }: Props) {
   const remaining = goal.targetAmount - goal.currentAmount;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-8 space-y-6">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push("/goals")}
+      <div className="flex items-center gap-3 sticky top-0 z-30 bg-background pt-4 pb-2 -mt-4 -mx-4 px-4 sm:static sm:z-auto sm:bg-transparent sm:pt-0 sm:pb-0 sm:mt-0 sm:mx-0 sm:px-0">
+        <PageHeader
+          crumbs={[{ label: "Home", href: "/" }, { label: "Goals", href: "/goals" }]}
+          title={goal.name}
         >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-muted-foreground" />
-            <h1 className="text-xl sm:text-2xl font-bold">{goal.name}</h1>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-muted-foreground" />
+              <h1 className="text-xl font-bold truncate">{goal.name}</h1>
+            </div>
+            {goal.targetDate && (
+              <p className="text-xs text-muted-foreground">
+                Target: {formatDate(goal.targetDate)}
+              </p>
+            )}
           </div>
-          {goal.targetDate && (
-            <p className="text-xs text-muted-foreground">
-              Target: {formatDate(goal.targetDate)}
-            </p>
-          )}
-        </div>
+        </PageHeader>
         {goal.status !== "completed" && (
           <Button
             size="sm"
-            className="gap-1.5"
+            className="gap-1.5 ml-auto shrink-0"
             onClick={() => setShowContribute(true)}
           >
             <Plus className="h-3.5 w-3.5" />
