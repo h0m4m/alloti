@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
 import { ArrowUp, Loader2, Plus, History } from "lucide-react";
@@ -32,6 +32,14 @@ const SUGGESTIONS = [
 ];
 
 export default function AIPage() {
+  return (
+    <Suspense>
+      <AIPageContent />
+    </Suspense>
+  );
+}
+
+function AIPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [input, setInput] = useState("");
