@@ -19,14 +19,37 @@ export interface BudgetPeriod {
 
 export interface Expense {
   _id: string;
-  budgetPeriodId: string;
-  categoryId: string;
+  userId?: string;
+  budgetPeriodId: string | null;
+  categoryId: string | null;
   description: string;
   amount: number;
+  currency: string | null;
   date: string;
+  merchant: string | null;
+  source: "manual" | "apple_shortcuts_sms";
+  rawImportMessage: string | null;
+  rawMessageHash: string | null;
+  importConfidence: number | null;
   hasAttachment: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ImportTokenData {
+  token: string;
+  enabled: boolean;
+  lastImportAt: string | null;
+  createdAt: string;
+}
+
+export interface SmsParseResult {
+  amount: number;
+  currency: string | null;
+  merchant: string | null;
+  category: string | null;
+  cardLastFour: string | null;
+  confidence: number;
 }
 
 // ── V2 Types ──

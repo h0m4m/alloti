@@ -16,6 +16,7 @@ import { ExpenseAttachment } from "@/lib/models/expense-attachment";
 import { UserPreferences } from "@/lib/models/user-preferences";
 import { BudgetRollover } from "@/lib/models/budget-rollover";
 import { ChatConversation } from "@/lib/models/chat-conversation";
+import { ImportToken } from "@/lib/models/import-token";
 import { Types } from "mongoose";
 import { auth } from "@/auth";
 import { formatCurrency, setCurrencyCode } from "@/lib/format";
@@ -2331,4 +2332,66 @@ export async function searchChatConversations(query: string) {
     .lean();
 
   return JSON.parse(JSON.stringify(convs));
+}
+
+// ── Import Token Actions ──
+
+export async function getImportToken() {
+  const userId = await requireUser();
+  await connectDB();
+
+  const token = await ImportToken.findOne({ userId }).lean();
+  if (!token) return null;
+  return JSON.parse(JSON.stringify(token));
+}
+
+export async function createImportToken() {
+  const userId = await requireUser();
+  await connectDB();
+
+  // Delete existing token if any
+  await ImportToken.deleteOne({ userId });
+
+  const token = await ImportToken.create({ userId });
+  revalidatePath("/settings/import");
+  return JSON.parse(JSON.stringify(token));
+}
+
+export async function regenerateImportToken() {
+  const userId = await requireUser();
+  await connectDB();
+
+  const crypto = await import("crypto");
+  const newToken = crypto.randomBytes(32).toString("hex");
+
+  const token = await ImportToken.findOneAndUpdate(
+    { userId },
+    { $set: { token: newToken } },
+    { new: true }
+  ).lean();
+
+  if (!token) {
+    const created = await ImportToken.create({ userId, token: newToken });
+    revalidatePath("/settings/import");
+    return JSON.parse(JSON.stringify(created));
+  }
+
+  revalidatePath("/settings/import");
+  return JSON.parse(JSON.stringify(token));
+}
+
+export async function toggleImportToken(enabled: boolean) {
+  const userId = await requireUser();
+  await connectDB();
+
+  await ImportToken.updateOne({ userId }, { $set: { enabled } });
+  revalidatePath("/settings/import");
+}
+
+export async function deleteImportToken() {
+  const userId = await requireUser();
+  await connectDB();
+
+  await ImportToken.deleteOne({ userId });
+  revalidatePath("/settings/import");
 }

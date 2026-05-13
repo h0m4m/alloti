@@ -19,7 +19,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = user.id;
       return session;
     },
-    authorized: async ({ auth: session }) => {
+    authorized: async ({ auth: session, request }) => {
+      // Allow public API routes (webhook endpoints)
+      if (request?.nextUrl?.pathname.startsWith("/api/import/")) {
+        return true;
+      }
       return !!session;
     },
   },

@@ -141,8 +141,8 @@ export function ExpensesListView({
   async function handleDeleteExpense(expense: Expense) {
     await deleteExpense(
       expense._id,
-      expense.budgetPeriodId,
-      expense.categoryId,
+      expense.budgetPeriodId!,
+      expense.categoryId!,
       expense.amount
     );
     router.refresh();
@@ -297,8 +297,8 @@ export function ExpensesListView({
               {expenses.length} expense{expenses.length !== 1 ? "s" : ""}
             </p>
             {expenses.map((exp, i) => {
-              const cat = categoryMap.get(exp.categoryId);
-              const period = periodMap.get(exp.budgetPeriodId);
+              const cat = exp.categoryId ? categoryMap.get(exp.categoryId) : undefined;
+              const period = exp.budgetPeriodId ? periodMap.get(exp.budgetPeriodId) : undefined;
               return (
                 <div key={exp._id}>
                   {i > 0 && <Separator className="my-2" />}
@@ -365,7 +365,7 @@ export function ExpensesListView({
           onClose={() => setEditingExpense(null)}
           expense={editingExpense}
           categories={
-            periodMap.get(editingExpense.budgetPeriodId)?.categories || []
+            (editingExpense.budgetPeriodId ? periodMap.get(editingExpense.budgetPeriodId)?.categories : undefined) || []
           }
         />
       )}

@@ -52,12 +52,12 @@ function EditExpenseFormInner({
 
     await updateExpense({
       expenseId: expense._id,
-      budgetPeriodId: expense.budgetPeriodId,
+      budgetPeriodId: expense.budgetPeriodId!,
       categoryId,
       description,
       amount: parseFloat(amount),
       date,
-      oldCategoryId: expense.categoryId,
+      oldCategoryId: expense.categoryId!,
       oldAmount: expense.amount,
     });
 

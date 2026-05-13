@@ -256,7 +256,7 @@ function AIPageContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-2 sm:pb-8 flex flex-col h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-5rem)]">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-2 sm:pb-8 flex flex-col h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] sm:h-[calc(100dvh-5rem)]">
       <div className="flex items-center justify-between">
         <PageHeader crumbs={[{ label: "Home", href: "/" }]} title="AI Assistant" />
         <TooltipProvider>
@@ -373,7 +373,7 @@ function AIPageContent() {
       </div>
 
       {/* Input area */}
-      <div className="mt-3 shrink-0">
+      <div className="mt-3 mb-4 sm:mb-0 shrink-0">
         <div className="flex items-end gap-2 rounded-2xl border border-border bg-card px-3 py-3">
           <textarea
             ref={inputRef}

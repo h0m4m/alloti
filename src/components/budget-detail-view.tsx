@@ -80,8 +80,8 @@ export function BudgetDetailView({
   async function handleDeleteExpense(expense: Expense) {
     await deleteExpense(
       expense._id,
-      expense.budgetPeriodId,
-      expense.categoryId,
+      expense.budgetPeriodId!,
+      expense.categoryId!,
       expense.amount
     );
     router.refresh();
@@ -359,7 +359,7 @@ export function BudgetDetailView({
               <Card>
                 <CardContent className="p-3 sm:p-4 space-y-2">
                   {expenses.slice(0, 15).map((exp, i) => {
-                    const cat = categoryMap.get(exp.categoryId);
+                    const cat = exp.categoryId ? categoryMap.get(exp.categoryId) : undefined;
                     return (
                       <div key={exp._id}>
                         {i > 0 && <Separator className="my-2" />}
