@@ -9,7 +9,7 @@ import {
   Settings2,
   Download,
   Sparkles,
-  Bell,
+  Smartphone,
   Trash2,
   AlertTriangle,
 } from "lucide-react";
@@ -335,6 +335,17 @@ export function SettingsView({ user, preferences, templates }: Props) {
             Category Rules
             <span className="ml-auto text-xs text-muted-foreground">
               Manage
+            </span>
+          </Link>
+          <Separator />
+          <Link
+            href="/settings/import"
+            className="flex items-center gap-2 py-2 text-sm hover:text-primary transition-colors"
+          >
+            <Smartphone className="h-4 w-4 text-muted-foreground" />
+            Transaction Import
+            <span className="ml-auto text-xs text-muted-foreground">
+              SMS via Apple Shortcuts
             </span>
           </Link>
           <Separator />

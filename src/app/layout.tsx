@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { BottomNav } from "@/components/bottom-nav";
 import { DesktopHeader } from "@/components/desktop-header";
+import { MobileHeader } from "@/components/mobile-header";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { getUserPreferences, getBudgetPeriods, generateNotifications } from "@/lib/actions";
@@ -85,6 +86,7 @@ export default async function RootLayout({
           <SessionProvider>
             <CurrencyProvider currency={currency} />
             {user && <DesktopHeader notifications={notifications} user={user} />}
+            {user && <MobileHeader notifications={notifications} user={user} />}
             <main className="flex-1 pb-16 sm:pb-0">{children}</main>
             <BottomNav periods={periods} />
             <Toaster position="top-right" richColors closeButton />

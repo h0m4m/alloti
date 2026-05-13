@@ -13,9 +13,10 @@ export function useDrawerContainer() {
 }
 
 function Drawer({
+  repositionInputs = false,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />
+  return <DrawerPrimitive.Root data-slot="drawer" repositionInputs={repositionInputs} {...props} />
 }
 
 function DrawerTrigger({

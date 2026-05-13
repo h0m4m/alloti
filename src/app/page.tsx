@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import {
   Plus,
@@ -36,13 +35,6 @@ export default async function Home() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-8 space-y-6">
-      {/* Mobile header — desktop uses layout DesktopHeader */}
-      <div className="flex items-center gap-2.5 sm:hidden">
-        <Image src="/logo.svg" alt="" width={32} height={32} className="dark:hidden" aria-hidden />
-        <Image src="/logowhite.svg" alt="" width={32} height={32} className="hidden dark:block" aria-hidden />
-        <h1 className="text-2xl font-bold tracking-tight">Alloti</h1>
-      </div>
-
       {/* Mobile quick links — only for pages not in bottom nav */}
       <div className="flex gap-2 sm:hidden">
         <Link href="/income" className="flex-1">
