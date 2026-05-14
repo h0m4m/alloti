@@ -36,13 +36,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { updateUserPreferences, deleteAllUserData } from "@/lib/actions";
+import { DirhamIcon } from "@/components/dirham-icon";
 import type { UserPreferencesData, BudgetTemplate } from "@/lib/types";
 
 const CURRENCIES = [
   { code: "USD", label: "USD ($)" },
   { code: "EUR", label: "EUR (€)" },
   { code: "GBP", label: "GBP (£)" },
-  { code: "AED", label: "AED (د.إ)" },
+  { code: "AED", label: "AED", icon: "/dirham.svg" },
+  { code: "EGP", label: "EGP (E£)" },
   { code: "SAR", label: "SAR (﷼)" },
   { code: "CAD", label: "CAD ($)" },
   { code: "AUD", label: "AUD ($)" },
@@ -176,7 +178,16 @@ export function SettingsView({ user, preferences, templates }: Props) {
                 <SelectContent>
                   {CURRENCIES.map((c) => (
                     <SelectItem key={c.code} value={c.code}>
-                      {c.label}
+                      <span className="inline-flex items-center gap-1">
+                        {c.label}
+                        {c.icon && (
+                          <>
+                            {" ("}
+                            <DirhamIcon className="inline-block h-3.5 w-3.5" />
+                            {")"}
+                          </>
+                        )}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

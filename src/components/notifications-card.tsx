@@ -10,12 +10,19 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
 import type { AppNotification } from "@/lib/types";
 
@@ -108,10 +115,135 @@ export function NotificationsBell({ notifications }: Props) {
     }
   }, [notifications]);
 
+  const isDesktop = useMediaQuery("(min-width: 640px)");
   const visible = notifications.filter((n) => !dismissed.has(n.id));
   const count = visible.length;
   const hasCritical = visible.some((n) => n.severity === "critical");
   const shown = visible.slice(0, 5);
+
+  const bellButton = (
+    <Button variant="ghost" size="icon" className="relative h-8 w-8">
+      <Bell className="h-4 w-4" />
+      {count > 0 && (
+        <span
+          className={`absolute -top-0.5 -right-0.5 flex items-center justify-center h-4 min-w-4 px-1 rounded-full text-[10px] font-bold ${
+            hasCritical
+              ? "bg-destructive text-destructive-foreground"
+              : "bg-primary text-primary-foreground"
+          }`}
+        >
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </Button>
+  );
+
+  const notificationsList = (
+    <>
+      {count === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-6">
+          No notifications
+        </p>
+      ) : (
+        <div className="max-h-72 overflow-y-auto">
+          {shown.map((notif, i) => (
+            <div key={notif.id}>
+              {i > 0 && <Separator />}
+              <div className="flex items-start gap-2 px-3 py-2.5 group hover:bg-muted/50 transition-colors">
+                <SeverityIcon severity={notif.severity} />
+                <div className="flex-1 min-w-0">
+                  {notif.relatedPath ? (
+                    <Link
+                      href={notif.relatedPath}
+                      onClick={() => setOpen(false)}
+                      className="text-xs font-medium hover:underline"
+                    >
+                      {notif.title}
+                    </Link>
+                  ) : (
+                    <span className="text-xs font-medium">
+                      {notif.title}
+                    </span>
+                  )}
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {notif.message}
+                  </p>
+                </div>
+                <button
+                  onClick={() =>
+                    setDismissed((prev) => new Set(prev).add(notif.id))
+                  }
+                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 p-0.5 rounded hover:bg-muted"
+                  aria-label="Dismiss"
+                >
+                  <X className="h-3 w-3 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {count > 0 && (
+        <>
+          <Separator />
+          <div className="p-2">
+            <Link
+              href="/notifications"
+              onClick={() => setOpen(false)}
+            >
+              <Button variant="ghost" size="sm" className="w-full text-xs">
+                View all notifications
+              </Button>
+            </Link>
+          </div>
+        </>
+      )}
+    </>
+  );
+
+  const header = (
+    <div className="flex items-center justify-between px-3 py-2">
+      <p className="text-sm font-medium">
+        Notifications{" "}
+        {count > 0 && (
+          <span className="text-xs text-muted-foreground font-normal">
+            ({count})
+          </span>
+        )}
+      </p>
+      {count > 1 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs h-6 px-2"
+          onClick={() =>
+            setDismissed(new Set(visible.map((n) => n.id)))
+          }
+        >
+          Dismiss all
+        </Button>
+      )}
+    </div>
+  );
+
+  if (!isDesktop) {
+    return (
+      <Drawer open={open} onOpenChange={setOpen}>
+        <div role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setOpen(true); }}>
+          {bellButton}
+        </div>
+        <DrawerContent>
+          <DrawerHeader className="sr-only">
+            <DrawerTitle>Notifications</DrawerTitle>
+          </DrawerHeader>
+          {header}
+          <Separator />
+          {notificationsList}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -134,90 +266,9 @@ export function NotificationsBell({ notifications }: Props) {
         )}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
-        <div className="flex items-center justify-between px-3 py-2">
-          <p className="text-sm font-medium">
-            Notifications{" "}
-            {count > 0 && (
-              <span className="text-xs text-muted-foreground font-normal">
-                ({count})
-              </span>
-            )}
-          </p>
-          {count > 1 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs h-6 px-2"
-              onClick={() =>
-                setDismissed(new Set(visible.map((n) => n.id)))
-              }
-            >
-              Dismiss all
-            </Button>
-          )}
-        </div>
-
+        {header}
         <Separator />
-
-        {count === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6">
-            No notifications
-          </p>
-        ) : (
-          <div className="max-h-72 overflow-y-auto">
-            {shown.map((notif, i) => (
-              <div key={notif.id}>
-                {i > 0 && <Separator />}
-                <div className="flex items-start gap-2 px-3 py-2.5 group hover:bg-muted/50 transition-colors">
-                  <SeverityIcon severity={notif.severity} />
-                  <div className="flex-1 min-w-0">
-                    {notif.relatedPath ? (
-                      <Link
-                        href={notif.relatedPath}
-                        onClick={() => setOpen(false)}
-                        className="text-xs font-medium hover:underline"
-                      >
-                        {notif.title}
-                      </Link>
-                    ) : (
-                      <span className="text-xs font-medium">
-                        {notif.title}
-                      </span>
-                    )}
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {notif.message}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() =>
-                      setDismissed((prev) => new Set(prev).add(notif.id))
-                    }
-                    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 p-0.5 rounded hover:bg-muted"
-                    aria-label="Dismiss"
-                  >
-                    <X className="h-3 w-3 text-muted-foreground" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {count > 0 && (
-          <>
-            <Separator />
-            <div className="p-2">
-              <Link
-                href="/notifications"
-                onClick={() => setOpen(false)}
-              >
-                <Button variant="ghost" size="sm" className="w-full text-xs">
-                  View all notifications
-                </Button>
-              </Link>
-            </div>
-          </>
-        )}
+        {notificationsList}
       </PopoverContent>
     </Popover>
   );

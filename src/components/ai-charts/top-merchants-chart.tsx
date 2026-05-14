@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/format";
+import { Currency } from "@/components/currency";
 
 interface Merchant {
   name: string;
@@ -33,7 +33,7 @@ export function TopMerchantsChart({ merchants }: Props) {
                       {merchant.name}
                     </span>
                     <span className="text-sm font-medium tabular-nums shrink-0">
-                      {formatCurrency(merchant.total)}
+                      <Currency amount={merchant.total} />
                     </span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden">

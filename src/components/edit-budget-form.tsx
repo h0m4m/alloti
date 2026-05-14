@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent } from "@/components/ui/card";
 import { updateBudgetPeriod } from "@/lib/actions";
+import { Currency } from "@/components/currency";
 import { formatCurrency, formatDateInput } from "@/lib/format";
 import type { BudgetPeriod } from "@/lib/types";
 
@@ -168,8 +169,8 @@ export function EditBudgetForm({ period }: { period: BudgetPeriod }) {
                 className={`text-xs ${remaining < 0 ? "text-destructive" : "text-muted-foreground"}`}
               >
                 {remaining >= 0
-                  ? `${formatCurrency(remaining)} unallocated`
-                  : `${formatCurrency(Math.abs(remaining))} over`}
+                  ? <><Currency amount={remaining} /> unallocated</>
+                  : <><Currency amount={Math.abs(remaining)} /> over</>}
               </span>
             )}
           </div>
@@ -184,7 +185,7 @@ export function EditBudgetForm({ period }: { period: BudgetPeriod }) {
                 <span className="flex-1 text-sm font-medium">{cat.name}</span>
                 {cat.spent > 0 && (
                   <span className="text-xs text-muted-foreground">
-                    {formatCurrency(cat.spent)} spent
+                    <Currency amount={cat.spent} /> spent
                   </span>
                 )}
                 <Input

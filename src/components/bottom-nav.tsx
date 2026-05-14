@@ -41,8 +41,8 @@ export function BottomNav({ periods }: Props) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
 
-  // Don't show on login page
-  if (pathname === "/login") return null;
+  const topLevelPages = ["/", "/expenses", "/ai", "/reports"];
+  if (!topLevelPages.includes(pathname)) return null;
 
   return (
     <>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/format";
+import { Currency } from "@/components/currency";
 
 interface MonthlyEntry {
   name: string;
@@ -48,8 +48,8 @@ export function MonthlyComparisonChart({ data }: Props) {
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
                       <div className="bg-popover text-popover-foreground border border-border rounded-lg px-2.5 py-1.5 text-xs shadow-md whitespace-nowrap">
                         <p className="font-medium">{entry.name}</p>
-                        <p>Budget: {formatCurrency(entry.budget)}</p>
-                        <p>Spent: {formatCurrency(entry.spent)}</p>
+                        <p>Budget: <Currency amount={entry.budget} /></p>
+                        <p>Spent: <Currency amount={entry.spent} /></p>
                       </div>
                     </div>
                   </div>

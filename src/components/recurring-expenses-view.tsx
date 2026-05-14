@@ -32,10 +32,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AddRecurringForm } from "@/components/add-recurring-form";
-import {
-  formatCurrency,
-  formatDate,
-} from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { Currency } from "@/components/currency";
 import {
   toggleRecurringExpenseStatus,
   markRecurringExpensePaid,
@@ -117,7 +115,7 @@ export function RecurringExpensesView({ items, periods }: Props) {
               <span className="text-sm font-medium truncate">{item.name}</span>
             </div>
             <span className="text-sm font-medium shrink-0">
-              {formatCurrency(item.amount)}
+              <Currency amount={item.amount} />
             </span>
           </div>
 

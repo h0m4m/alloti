@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { NotificationsBell } from "@/components/notifications-card";
 import { UserMenu } from "@/components/user-menu";
 import type { AppNotification } from "@/lib/types";
@@ -16,6 +17,11 @@ interface Props {
 }
 
 export function MobileHeader({ notifications, user }: Props) {
+  const pathname = usePathname();
+
+  const topLevelPages = ["/", "/expenses", "/ai", "/reports"];
+  if (!topLevelPages.includes(pathname)) return null;
+
   return (
     <div className="flex items-center justify-between px-4 pt-8 sm:hidden">
       <Link href="/" className="flex items-center gap-2.5">

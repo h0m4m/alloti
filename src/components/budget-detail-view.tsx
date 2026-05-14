@@ -14,12 +14,20 @@ import {
   ClipboardList,
   Paperclip,
   Pencil,
+  ChevronRight,
+  MoreVertical,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +48,7 @@ import {
   daysRemaining,
   percentSpent,
 } from "@/lib/format";
+import { Currency } from "@/components/currency";
 import { deleteBudgetPeriod, deleteExpense } from "@/lib/actions";
 import type { BudgetPeriod, Expense, Income } from "@/lib/types";
 
@@ -137,10 +146,10 @@ export function BudgetDetailView({
                 totalPct > 100 ? "text-destructive font-medium" : ""
               }
             >
-              {formatCurrency(totalSpent)} spent
+              <Currency amount={totalSpent} /> spent
             </span>
             <span className="text-muted-foreground">
-              {formatCurrency(period.totalBudget)} budget
+              <Currency amount={period.totalBudget} /> budget
             </span>
           </div>
           <Progress
@@ -148,7 +157,7 @@ export function BudgetDetailView({
             className={`h-3 ${totalPct > 100 ? "[&>div]:bg-destructive" : ""}`}
           />
           <p className="text-xs sm:text-sm text-muted-foreground text-center">
-            {formatCurrency(Math.max(0, period.totalBudget - totalSpent))}{" "}
+            <Currency amount={Math.max(0, period.totalBudget - totalSpent)} />{" "}
             remaining
           </p>
         </CardContent>
@@ -163,7 +172,7 @@ export function BudgetDetailView({
                 Income this period
               </p>
               <p className="text-sm font-medium text-green-600">
-                +{formatCurrency(totalIncome)}
+                +<Currency amount={totalIncome} />
               </p>
             </div>
             <div className="text-right space-y-0.5">
@@ -173,7 +182,7 @@ export function BudgetDetailView({
               <p
                 className={`text-sm font-medium ${totalIncome - totalSpent >= 0 ? "text-green-600" : "text-destructive"}`}
               >
-                {formatCurrency(totalIncome - totalSpent)}
+                <Currency amount={totalIncome - totalSpent} />
               </p>
             </div>
           </CardContent>
@@ -248,16 +257,22 @@ export function BudgetDetailView({
               );
 
               return (
-                <Card key={cat._id}>
+                <Card key={cat._id} className="group/card hover:border-primary/30 transition-colors">
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: cat.color }}
-                      />
-                      <span className="flex-1 text-sm font-medium">
-                        {cat.name}
-                      </span>
+                      <Link
+                        href={`/budget/${period._id}/category/${cat._id}`}
+                        className="flex items-center gap-2 flex-1 min-w-0"
+                      >
+                        <div
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        <span className="flex-1 text-sm font-medium truncate">
+                          {cat.name}
+                        </span>
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/card:opacity-100 transition-opacity shrink-0" />
+                      </Link>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -271,27 +286,32 @@ export function BudgetDetailView({
                       </Button>
                     </div>
 
-                    <div className="flex justify-between text-xs">
-                      <span className={isOver ? "text-destructive" : ""}>
-                        {formatCurrency(cat.spent)} spent
-                      </span>
-                      <span className="text-muted-foreground">
-                        of {formatCurrency(cat.allocated)}
-                      </span>
-                    </div>
-
-                    <p
-                      className={`text-xs font-medium ${isOver ? "text-destructive" : "text-muted-foreground"}`}
+                    <Link
+                      href={`/budget/${period._id}/category/${cat._id}`}
+                      className="block space-y-2"
                     >
-                      {isOver
-                        ? `${formatCurrency(cat.spent - cat.allocated)} over budget`
-                        : `${formatCurrency(cat.allocated - cat.spent)} remaining`}
-                    </p>
+                      <div className="flex justify-between text-xs">
+                        <span className={isOver ? "text-destructive" : ""}>
+                          <Currency amount={cat.spent} /> spent
+                        </span>
+                        <span className="text-muted-foreground">
+                          of <Currency amount={cat.allocated} />
+                        </span>
+                      </div>
 
-                    <Progress
-                      value={Math.min(pct, 100)}
-                      className={`h-1.5 ${isOver ? "[&>div]:bg-destructive" : ""}`}
-                    />
+                      <p
+                        className={`text-xs font-medium ${isOver ? "text-destructive" : "text-muted-foreground"}`}
+                      >
+                        {isOver
+                          ? <><Currency amount={cat.spent - cat.allocated} /> over budget</>
+                          : <><Currency amount={cat.allocated - cat.spent} /> remaining</>}
+                      </p>
+
+                      <Progress
+                        value={Math.min(pct, 100)}
+                        className={`h-1.5 ${isOver ? "[&>div]:bg-destructive" : ""}`}
+                      />
+                    </Link>
 
                     {catExpenses.length > 0 && (
                       <div className="pt-1 space-y-1">
@@ -317,11 +337,11 @@ export function BudgetDetailView({
                               </span>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
-                              <span>{formatCurrency(exp.amount)}</span>
+                              <span><Currency amount={exp.amount} /></span>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-5 w-5 hidden sm:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={() => setEditingExpense(exp)}
                               >
                                 <Pencil className="h-2.5 w-2.5" />
@@ -329,7 +349,7 @@ export function BudgetDetailView({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-5 w-5 hidden sm:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={() => handleDeleteExpense(exp)}
                               >
                                 <X className="h-3 w-3" />
@@ -338,9 +358,12 @@ export function BudgetDetailView({
                           </div>
                         ))}
                         {catExpenses.length > 3 && (
-                          <p className="text-[10px] text-muted-foreground">
+                          <Link
+                            href={`/budget/${period._id}/category/${cat._id}`}
+                            className="block text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                          >
                             +{catExpenses.length - 3} more
-                          </p>
+                          </Link>
                         )}
                       </div>
                     )}
@@ -392,12 +415,32 @@ export function BudgetDetailView({
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <span className="text-sm font-medium">
-                              {formatCurrency(exp.amount)}
+                              <Currency amount={exp.amount} />
                             </span>
+                            {/* Mobile: dropdown menu */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="h-6 w-6 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground sm:hidden">
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setEditingExpense(exp)}>
+                                  <Pencil className="h-3.5 w-3.5 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteExpense(exp)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            {/* Desktop: hover buttons */}
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-6 w-6 hidden sm:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => setEditingExpense(exp)}
                             >
                               <Pencil className="h-3 w-3" />
@@ -405,7 +448,7 @@ export function BudgetDetailView({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-6 w-6 hidden sm:inline-flex opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => handleDeleteExpense(exp)}
                             >
                               <Trash2 className="h-3 w-3" />

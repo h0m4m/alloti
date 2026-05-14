@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Currency } from "@/components/currency";
 import {
   formatCurrency,
   formatDate,
@@ -168,7 +169,7 @@ export function BudgetReviewView({
           <CardContent className="p-4 text-center">
             <p className="text-xs text-muted-foreground">Budget</p>
             <p className="text-lg font-bold">
-              {formatCurrency(period.totalBudget)}
+              <Currency amount={period.totalBudget} />
             </p>
           </CardContent>
         </Card>
@@ -178,7 +179,7 @@ export function BudgetReviewView({
             <p
               className={`text-lg font-bold ${totalPct > 100 ? "text-destructive" : ""}`}
             >
-              {formatCurrency(review.totalSpent)}
+              <Currency amount={review.totalSpent} />
             </p>
           </CardContent>
         </Card>
@@ -187,7 +188,7 @@ export function BudgetReviewView({
             <CardContent className="p-4 text-center">
               <p className="text-xs text-muted-foreground">Income</p>
               <p className="text-lg font-bold text-green-600">
-                {formatCurrency(review.totalIncome)}
+                <Currency amount={review.totalIncome} />
               </p>
             </CardContent>
           </Card>
@@ -198,7 +199,7 @@ export function BudgetReviewView({
             <p
               className={`text-lg font-bold ${review.remaining < 0 ? "text-destructive" : "text-green-600"}`}
             >
-              {formatCurrency(review.remaining)}
+              <Currency amount={review.remaining} />
             </p>
           </CardContent>
         </Card>
@@ -216,8 +217,8 @@ export function BudgetReviewView({
           <div className="flex justify-between text-sm">
             <span>{Math.round(totalPct)}% of budget used</span>
             <span className="text-muted-foreground">
-              {formatCurrency(review.totalSpent)} /{" "}
-              {formatCurrency(period.totalBudget)}
+              <Currency amount={review.totalSpent} /> /{" "}
+              <Currency amount={period.totalBudget} />
             </span>
           </div>
           <Progress
@@ -234,7 +235,7 @@ export function BudgetReviewView({
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-600" />
               <h3 className="text-sm font-medium">
-                {formatCurrency(rolloverInfo!.remaining)} remaining
+                <Currency amount={rolloverInfo!.remaining} /> remaining
               </h3>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -335,7 +336,7 @@ export function BudgetReviewView({
                 <SelectContent>
                   {activeGoals.map((g) => (
                     <SelectItem key={g._id} value={g._id}>
-                      {g.name} — {formatCurrency(g.currentAmount)} / {formatCurrency(g.targetAmount)}
+                      {g.name} — <Currency amount={g.currentAmount} /> / <Currency amount={g.targetAmount} />
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -370,7 +371,7 @@ export function BudgetReviewView({
             <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
             <div className="text-sm">
               <span className="font-medium">
-                {formatCurrency(rolloverInfo.rolloverRecord.amount)}
+                <Currency amount={rolloverInfo.rolloverRecord.amount} />
               </span>{" "}
               <span className="text-muted-foreground">
                 {rolloverInfo.rolloverRecord.action === "rollover_to_budget"
@@ -408,19 +409,19 @@ export function BudgetReviewView({
                       {isOver ? (
                         <span className="text-destructive flex items-center gap-0.5">
                           <TrendingDown className="h-3 w-3" />
-                          {formatCurrency(Math.abs(diff))} over
+                          <Currency amount={Math.abs(diff)} /> over
                         </span>
                       ) : (
                         <span className="text-green-600 flex items-center gap-0.5">
                           <TrendingUp className="h-3 w-3" />
-                          {formatCurrency(diff)} left
+                          <Currency amount={diff} /> left
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatCurrency(cat.spent)} spent</span>
-                    <span>{formatCurrency(cat.allocated)} allocated</span>
+                    <span><Currency amount={cat.spent} /> spent</span>
+                    <span><Currency amount={cat.allocated} /> allocated</span>
                   </div>
                   <Progress
                     value={Math.min(pct, 100)}
@@ -449,7 +450,7 @@ export function BudgetReviewView({
                 >
                   <span>{cat.name}</span>
                   <span className="text-destructive">
-                    {formatCurrency(cat.over)} over
+                    <Currency amount={cat.over} /> over
                   </span>
                 </div>
               ))}
@@ -475,7 +476,7 @@ export function BudgetReviewView({
                       </p>
                     </div>
                     <span className="text-sm font-medium">
-                      {formatCurrency(m.total)}
+                      <Currency amount={m.total} />
                     </span>
                   </div>
                 </div>
@@ -506,7 +507,7 @@ export function BudgetReviewView({
                         {fromCat?.name || "Unknown"} → {toCat?.name || "Unknown"}
                       </span>
                       <span className="font-medium">
-                        {formatCurrency(t.amount)}
+                        <Currency amount={t.amount} />
                       </span>
                     </div>
                     {t.note && (

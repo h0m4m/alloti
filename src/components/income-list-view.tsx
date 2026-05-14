@@ -13,10 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { AddIncomeForm } from "@/components/add-income-form";
-import {
-  formatCurrency,
-  formatDate,
-} from "@/lib/format";
+import { Currency } from "@/components/currency";
+import { formatDate } from "@/lib/format";
 import { deleteIncome } from "@/lib/actions";
 import type { Income, BudgetPeriod } from "@/lib/types";
 
@@ -72,7 +70,7 @@ export function IncomeListView({ incomes, periods }: Props) {
               </span>
             </div>
             <span className="text-lg font-bold text-green-600">
-              {formatCurrency(totalIncome)}
+              <Currency amount={totalIncome} />
             </span>
           </CardContent>
         </Card>
@@ -127,7 +125,7 @@ export function IncomeListView({ incomes, periods }: Props) {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <span className="text-sm font-medium text-green-600">
-                        +{formatCurrency(inc.amount)}
+                        +<Currency amount={inc.amount} />
                       </span>
                       <Button
                         variant="ghost"

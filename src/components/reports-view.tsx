@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Currency } from "@/components/currency";
 import { formatCurrency } from "@/lib/format";
 import {
   getSpendingByCategoryReport,
@@ -255,7 +256,7 @@ export function ReportsView({
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="font-medium">
-                          {formatCurrency(cat.spent)}
+                          <Currency amount={cat.spent} />
                         </span>
                         <span className="text-xs text-muted-foreground w-8 text-right">
                           {cat.percentage}%
@@ -266,7 +267,7 @@ export function ReportsView({
                   <Separator />
                   <div className="flex justify-between text-sm font-medium">
                     <span>Total</span>
-                    <span>{formatCurrency(categoryReport.totalSpent)}</span>
+                    <span><Currency amount={categoryReport.totalSpent} /></span>
                   </div>
                 </div>
               </div>
@@ -326,7 +327,7 @@ export function ReportsView({
                     </ResponsiveContainer>
                   </div>
                   <p className="text-center text-sm font-medium">
-                    {formatCurrency(budgetVsActual.totalPlanned)}
+                    <Currency amount={budgetVsActual.totalPlanned} />
                   </p>
                 </div>
                 {/* Actual Donut */}
@@ -373,7 +374,7 @@ export function ReportsView({
                     </ResponsiveContainer>
                   </div>
                   <p className="text-center text-sm font-medium">
-                    {formatCurrency(budgetVsActual.totalActual)}
+                    <Currency amount={budgetVsActual.totalActual} />
                   </p>
                 </div>
               </div>
@@ -403,7 +404,7 @@ export function ReportsView({
                   }
                 >
                   {budgetVsActual.totalDifference >= 0 ? "+" : ""}
-                  {formatCurrency(budgetVsActual.totalDifference)}
+                  <Currency amount={budgetVsActual.totalDifference} />
                 </span>
               </div>
             </CardContent>

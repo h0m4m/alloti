@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/drawer";
 import { transferBetweenCategories } from "@/lib/actions";
 import { formatCurrency } from "@/lib/format";
+import { Currency } from "@/components/currency";
 import type { BudgetCategory } from "@/lib/types";
 
 interface Props {
@@ -94,8 +95,8 @@ function TransferFormInner({
         </div>
         {fromCat && (
           <p className="text-xs text-muted-foreground">
-            Available: {formatCurrency(fromCat.allocated)} allocated,{" "}
-            {formatCurrency(fromRemaining)} remaining
+            Available: <Currency amount={fromCat.allocated} /> allocated,{" "}
+            <Currency amount={fromRemaining} /> remaining
           </p>
         )}
       </div>

@@ -17,7 +17,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { AddGoalForm } from "@/components/add-goal-form";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { Currency } from "@/components/currency";
 import { deleteSavingsGoal, toggleGoalPause } from "@/lib/actions";
 import type { SavingsGoal } from "@/lib/types";
 
@@ -105,9 +106,9 @@ export function GoalsListView({ goals }: Props) {
 
             <div className="space-y-1.5">
               <div className="flex justify-between text-sm">
-                <span>{formatCurrency(goal.currentAmount)}</span>
+                <span><Currency amount={goal.currentAmount} /></span>
                 <span className="text-muted-foreground">
-                  {formatCurrency(goal.targetAmount)}
+                  <Currency amount={goal.targetAmount} />
                 </span>
               </div>
               <Progress
