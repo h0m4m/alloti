@@ -41,13 +41,13 @@ interface Props {
 
 export function ImportSettingsView({ importToken: initial }: Props) {
   const [token, setToken] = useState(initial);
-  const [copiedField, setCopiedField] = useState<"url" | "token" | null>(null);
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showRegenerate, setShowRegenerate] = useState(false);
 
   const importUrl = token
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/import/sms`
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/import/sms/${token.token}`
     : "";
 
   async function handleSetup() {
@@ -82,11 +82,11 @@ export function ImportSettingsView({ importToken: initial }: Props) {
     toast.success("Import token deleted");
   }
 
-  function copyToClipboard(text: string, field: "url" | "token") {
+  function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
-    setCopiedField(field);
+    setCopied(true);
     toast.success("Copied to clipboard");
-    setTimeout(() => setCopiedField(null), 2000);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -179,38 +179,18 @@ export function ImportSettingsView({ importToken: initial }: Props) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(importUrl, "url")}
+                      onClick={() => copyToClipboard(importUrl)}
                     >
-                      {copiedField === "url" ? (
+                      {copied ? (
                         <Check className="h-3.5 w-3.5" />
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
                     </Button>
                   </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">
-                    Import Token
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs bg-muted px-3 py-2 rounded-md break-all font-mono">
-                      {token.token.slice(0, 8)}{"..."}
-                      {token.token.slice(-8)}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(token.token, "token")}
-                    >
-                      {copiedField === "token" ? (
-                        <Check className="h-3.5 w-3.5" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your token is embedded in the URL. Keep this URL private.
+                  </p>
                 </div>
 
                 {token.lastImportAt && (
@@ -277,7 +257,6 @@ export function ImportSettingsView({ importToken: initial }: Props) {
                       Request Body (JSON):
                       <pre className="mt-1 text-xs bg-muted px-3 py-2 rounded-md font-mono overflow-x-auto">
 {`{
-  "token": "${token.token.slice(0, 8)}...",
   "message": "[Shortcut Input]"
 }`}
                       </pre>
