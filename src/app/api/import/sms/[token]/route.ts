@@ -10,14 +10,18 @@ import { CategoryRule } from "@/lib/models/category-rule";
 import { parseSmsMessage } from "@/lib/sms-parser";
 import { Types } from "mongoose";
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ token: string }> }
+) {
   try {
+    const { token } = await params;
     const body = await req.json();
-    const { token, message } = body as { token?: string; message?: string };
+    const { message } = body as { message?: string };
 
-    if (!token || !message) {
+    if (!message) {
       return Response.json(
-        { success: false, error: "Missing token or message" },
+        { success: false, error: "Missing message" },
         { status: 400 }
       );
     }
@@ -60,7 +64,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Determine category — check user's category rules first, then AI suggestion
+    // Determine category — low confidence defaults to Uncategorized
     const categoryName =
       parsed.confidence < 0.7
         ? "Uncategorized"
@@ -83,9 +87,10 @@ export async function POST(req: Request) {
     if (activeBudget) {
       budgetPeriodId = activeBudget._id as Types.ObjectId;
 
-      // Try exact match first, then case-insensitive
+      // Try case-insensitive match
       const matchedCategory = activeBudget.categories.find(
-        (c: IBudgetCategory) => c.name.toLowerCase() === categoryName.toLowerCase()
+        (c: IBudgetCategory) =>
+          c.name.toLowerCase() === categoryName.toLowerCase()
       );
 
       if (matchedCategory) {
@@ -105,7 +110,8 @@ export async function POST(req: Request) {
 
           if (matched) {
             const ruleCategory = activeBudget.categories.find(
-              (c: IBudgetCategory) => c.name.toLowerCase() === rule.categoryName.toLowerCase()
+              (c: IBudgetCategory) =>
+                c.name.toLowerCase() === rule.categoryName.toLowerCase()
             );
             if (ruleCategory) {
               categoryId = ruleCategory._id as Types.ObjectId;
