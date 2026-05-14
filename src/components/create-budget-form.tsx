@@ -24,7 +24,8 @@ import {
   deleteBudgetTemplate,
   createBudgetTemplate,
 } from "@/lib/actions";
-import { formatCurrency, formatDateInput } from "@/lib/format";
+import { formatDateInput } from "@/lib/format";
+import { Currency } from "@/components/currency";
 import type { BudgetPeriod, BudgetTemplate } from "@/lib/types";
 
 interface CategoryDraft {
@@ -568,8 +569,8 @@ export function CreateBudgetForm({
               className={`text-xs ${remaining < 0 ? "text-destructive" : "text-muted-foreground"}`}
             >
               {remaining >= 0
-                ? `${formatCurrency(remaining)} unallocated`
-                : `${formatCurrency(Math.abs(remaining))} over`}
+                ? <><Currency amount={remaining} /> unallocated</>
+                : <><Currency amount={Math.abs(remaining)} /> over</>}
             </span>
           )}
         </div>

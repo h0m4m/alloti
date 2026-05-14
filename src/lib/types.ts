@@ -43,14 +43,6 @@ export interface ImportTokenData {
   createdAt: string;
 }
 
-export interface SmsParseResult {
-  amount: number;
-  currency: string | null;
-  merchant: string | null;
-  category: string | null;
-  cardLastFour: string | null;
-  confidence: number;
-}
 
 // ── V2 Types ──
 

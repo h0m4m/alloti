@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/format";
+import { Currency } from "@/components/currency";
 
 interface TrendPoint {
   periodName: string;
@@ -46,8 +46,8 @@ export function CategoryTrendChart({ categoryName, data }: Props) {
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
                       <div className="bg-popover text-popover-foreground border border-border rounded-lg px-2.5 py-1.5 text-xs shadow-md whitespace-nowrap">
                         <p className="font-medium">{point.periodName}</p>
-                        <p>Allocated: {formatCurrency(point.allocated)}</p>
-                        <p>Spent: {formatCurrency(point.spent)}</p>
+                        <p>Allocated: <Currency amount={point.allocated} /></p>
+                        <p>Spent: <Currency amount={point.spent} /></p>
                       </div>
                     </div>
                   </div>

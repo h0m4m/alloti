@@ -1,4 +1,7 @@
 import crypto from "crypto";
+import { openai } from "@ai-sdk/openai";
+import { generateObject } from "ai";
+import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { ImportToken } from "@/lib/models/import-token";
 import { Expense } from "@/lib/models/expense";
@@ -6,8 +9,7 @@ import {
   BudgetPeriod,
   type IBudgetCategory,
 } from "@/lib/models/budget-period";
-import { CategoryRule } from "@/lib/models/category-rule";
-import { parseSmsMessage } from "@/lib/sms-parser";
+import { UserPreferences } from "@/lib/models/user-preferences";
 import { Types } from "mongoose";
 
 export async function POST(
@@ -45,98 +47,126 @@ export async function POST(
       .update(message)
       .digest("hex");
 
-    const existingExpense = await Expense.findOne({
-      userId,
-      rawMessageHash,
-    });
-
+    const existingExpense = await Expense.findOne({ userId, rawMessageHash });
     if (existingExpense) {
       return Response.json({ success: true, status: "duplicate" });
     }
 
-    // Parse SMS with AI
-    const parsed = await parseSmsMessage(message);
+    // Load user context: active budget + currency preference
+    const now = new Date();
+    const [activeBudget, prefs] = await Promise.all([
+      BudgetPeriod.findOne({
+        userId,
+        startDate: { $lte: now },
+        endDate: { $gte: now },
+      })
+        .sort({ createdAt: -1 })
+        .lean(),
+      UserPreferences.findOne({ userId }).lean(),
+    ]);
 
-    if (!parsed || !parsed.amount || parsed.amount <= 0) {
-      return Response.json(
-        { success: false, error: "Could not extract amount from message" },
-        { status: 422 }
-      );
+    const userCurrency = prefs?.defaultCurrency ?? "USD";
+    const categoryNames = activeBudget
+      ? activeBudget.categories.map((c: IBudgetCategory) => c.name)
+      : [];
+
+    // Build schema with the user's actual categories
+    const categoryEnum =
+      categoryNames.length > 0
+        ? (categoryNames as [string, ...string[]])
+        : (["Uncategorized"] as [string, ...string[]]);
+
+    const schema = z.object({
+      amount: z
+        .number()
+        .describe(
+          `The transaction amount converted to ${userCurrency}. If the SMS shows a different currency, convert to ${userCurrency} at approximate market rate.`
+        ),
+      originalAmount: z
+        .number()
+        .nullable()
+        .describe(
+          "The original amount if in a different currency, or null if already in user currency"
+        ),
+      originalCurrency: z
+        .string()
+        .nullable()
+        .describe(
+          "The original currency code if different from user currency, or null"
+        ),
+      description: z
+        .string()
+        .describe(
+          "Short description for the expense — use the merchant/vendor name if available, otherwise summarize the transaction"
+        ),
+      category: z
+        .enum(categoryEnum)
+        .describe("The best-matching category for this expense"),
+      isExpense: z
+        .boolean()
+        .describe(
+          "true if this SMS describes an expense/purchase/payment. false if it is not a transaction (OTP, promo, alert, balance inquiry, etc.)"
+        ),
+      confidence: z
+        .number()
+        .min(0)
+        .max(1)
+        .describe("Confidence score from 0 to 1 for the overall parsing"),
+    });
+
+    const { object: parsed } = await generateObject({
+      model: openai("gpt-4.1-nano"),
+      schema,
+      prompt: `You are a transaction parser. Extract expense details from this bank SMS.
+
+User's currency: ${userCurrency}
+User's budget categories: ${categoryNames.join(", ") || "None configured"}
+
+Rules:
+- If the SMS is not an expense (OTP, promo, balance alert, etc.), set isExpense to false
+- Pick the most appropriate category from the user's list
+- If the amount is in a different currency than ${userCurrency}, convert it approximately and note the original
+- Use the merchant name as the description
+
+SMS: ${message}`,
+    });
+
+    // Not an expense — skip
+    if (!parsed.isExpense || !parsed.amount || parsed.amount <= 0) {
+      return Response.json({
+        success: true,
+        status: "skipped",
+        reason: "Not an expense transaction",
+      });
     }
 
-    // Determine category — low confidence defaults to Uncategorized
-    const categoryName =
-      parsed.confidence < 0.7
-        ? "Uncategorized"
-        : (parsed.category ?? "Uncategorized");
-
-    // Find active budget period: today within range, most recently created
-    const now = new Date();
-    const activeBudget = await BudgetPeriod.findOne({
-      userId,
-      startDate: { $lte: now },
-      endDate: { $gte: now },
-    })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    // Try to match category in the active budget
+    // Match category to budget
     let budgetPeriodId: Types.ObjectId | null = null;
     let categoryId: Types.ObjectId | null = null;
 
     if (activeBudget) {
       budgetPeriodId = activeBudget._id as Types.ObjectId;
 
-      // Try case-insensitive match
       const matchedCategory = activeBudget.categories.find(
         (c: IBudgetCategory) =>
-          c.name.toLowerCase() === categoryName.toLowerCase()
+          c.name.toLowerCase() === parsed.category.toLowerCase()
       );
 
       if (matchedCategory) {
         categoryId = matchedCategory._id as Types.ObjectId;
-      } else {
-        // Check user's category rules for a better match
-        const rules = await CategoryRule.find({ userId }).lean();
-        const merchantLower = (parsed.merchant ?? "").toLowerCase();
-
-        for (const rule of rules) {
-          const kw = rule.keyword.toLowerCase();
-          let matched = false;
-          if (rule.matchType === "exact") matched = merchantLower === kw;
-          else if (rule.matchType === "starts_with")
-            matched = merchantLower.startsWith(kw);
-          else matched = merchantLower.includes(kw);
-
-          if (matched) {
-            const ruleCategory = activeBudget.categories.find(
-              (c: IBudgetCategory) =>
-                c.name.toLowerCase() === rule.categoryName.toLowerCase()
-            );
-            if (ruleCategory) {
-              categoryId = ruleCategory._id as Types.ObjectId;
-              break;
-            }
-          }
-        }
       }
     }
-
-    // Build description
-    const description = parsed.merchant
-      ? `${parsed.merchant}`
-      : "Imported transaction";
 
     // Create the expense
     const expense = await Expense.create({
       userId,
       budgetPeriodId,
       categoryId,
-      description,
+      description: parsed.description,
       amount: parsed.amount,
-      currency: parsed.currency,
+      currency: parsed.originalCurrency ?? userCurrency,
       date: now,
-      merchant: parsed.merchant,
+      merchant: parsed.description,
       source: "apple_shortcuts_sms",
       rawImportMessage: message,
       rawMessageHash,
@@ -163,10 +193,11 @@ export async function POST(
       expense: {
         id: expense._id.toString(),
         amount: parsed.amount,
-        currency: parsed.currency,
-        merchant: parsed.merchant,
-        category: categoryName,
+        description: parsed.description,
+        category: parsed.category,
         confidence: parsed.confidence,
+        originalAmount: parsed.originalAmount,
+        originalCurrency: parsed.originalCurrency,
         budgetMatched: !!budgetPeriodId,
         categoryMatched: !!categoryId,
       },

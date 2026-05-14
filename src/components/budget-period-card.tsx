@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  formatCurrency,
-  formatDateShort,
-  daysRemaining,
-  percentSpent,
-} from "@/lib/format";
+import { formatDateShort, daysRemaining, percentSpent } from "@/lib/format";
+import { Currency } from "@/components/currency";
 import type { BudgetPeriod } from "@/lib/types";
 
 export function BudgetPeriodCard({ period }: { period: BudgetPeriod }) {
@@ -38,10 +34,10 @@ export function BudgetPeriodCard({ period }: { period: BudgetPeriod }) {
           <div className="space-y-1.5">
             <div className="flex justify-between text-sm">
               <span className={isOver ? "text-destructive font-medium" : ""}>
-                {formatCurrency(totalSpent)}
+                <Currency amount={totalSpent} />
               </span>
               <span className="text-muted-foreground">
-                {formatCurrency(period.totalBudget)}
+                <Currency amount={period.totalBudget} />
               </span>
             </div>
             <Progress

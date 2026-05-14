@@ -11,7 +11,8 @@ import { BudgetPeriodCard } from "@/components/budget-period-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { Currency } from "@/components/currency";
 import type { BudgetPeriod, RecurringExpense, SavingsGoal } from "@/lib/types";
 
 export default async function Home() {
@@ -77,7 +78,7 @@ export default async function Home() {
                   </span>
                 </div>
                 <span className="font-medium shrink-0">
-                  {formatCurrency(item.amount)}
+                  <Currency amount={item.amount} />
                 </span>
               </div>
             ))}

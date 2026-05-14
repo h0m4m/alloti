@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/format";
+import { Currency } from "@/components/currency";
 
 interface CategoryData {
   name: string;
@@ -69,11 +69,11 @@ export function SpendingPieChart({
         {/* Summary */}
         <div className="flex justify-center gap-6 text-center">
           <div>
-            <p className="text-base font-bold">{formatCurrency(totalSpent)}</p>
+            <p className="text-base font-bold"><Currency amount={totalSpent} /></p>
             <p className="text-xs text-muted-foreground">Spent</p>
           </div>
           <div>
-            <p className="text-base font-bold">{formatCurrency(totalBudget)}</p>
+            <p className="text-base font-bold"><Currency amount={totalBudget} /></p>
             <p className="text-xs text-muted-foreground">Budget</p>
           </div>
         </div>
@@ -88,7 +88,7 @@ export function SpendingPieChart({
               />
               <span className="flex-1 truncate">{cat.name}</span>
               <span className="text-muted-foreground tabular-nums text-xs">
-                {formatCurrency(cat.spent)}
+                <Currency amount={cat.spent} />
               </span>
               <span className="text-muted-foreground tabular-nums text-xs w-8 text-right">
                 {cat.percentage}%

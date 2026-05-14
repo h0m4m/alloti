@@ -24,10 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  formatCurrency,
-  formatDate,
-} from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { Currency } from "@/components/currency";
 import { deleteExpense } from "@/lib/actions";
 import { StandaloneAddExpenseForm } from "@/components/add-expense-form";
 import { EditExpenseForm } from "@/components/edit-expense-form";
@@ -332,12 +330,12 @@ export function ExpensesListView({
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <span className="text-sm font-medium">
-                        {formatCurrency(exp.amount)}
+                        <Currency amount={exp.amount} />
                       </span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         onClick={() => setEditingExpense(exp)}
                       >
                         <Pencil className="h-3 w-3" />
@@ -345,7 +343,7 @@ export function ExpensesListView({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         onClick={() => handleDeleteExpense(exp)}
                       >
                         <Trash2 className="h-3 w-3" />

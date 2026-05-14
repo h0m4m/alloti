@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/format";
+import { Currency } from "@/components/currency";
 
 interface CategoryData {
   name: string;
@@ -39,18 +39,18 @@ export function BudgetVsActualChart({
         {/* Totals */}
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <p className="text-base font-bold">{formatCurrency(totalPlanned)}</p>
+            <p className="text-base font-bold"><Currency amount={totalPlanned} /></p>
             <p className="text-xs text-muted-foreground">Budgeted</p>
           </div>
           <div>
-            <p className="text-base font-bold">{formatCurrency(totalActual)}</p>
+            <p className="text-base font-bold"><Currency amount={totalActual} /></p>
             <p className="text-xs text-muted-foreground">Spent</p>
           </div>
           <div>
             <p
               className={`text-base font-bold ${totalDifference >= 0 ? "text-emerald-500" : "text-red-500"}`}
             >
-              {formatCurrency(Math.abs(totalDifference))}
+              <Currency amount={Math.abs(totalDifference)} />
             </p>
             <p className="text-xs text-muted-foreground">
               {totalDifference >= 0 ? "Under" : "Over"}
@@ -71,7 +71,7 @@ export function BudgetVsActualChart({
                   <span
                     className={`text-xs tabular-nums shrink-0 ${over ? "text-red-500" : "text-muted-foreground"}`}
                   >
-                    {formatCurrency(cat.actual)} / {formatCurrency(cat.planned)}
+                    <Currency amount={cat.actual} /> / <Currency amount={cat.planned} />
                   </span>
                 </div>
                 <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">

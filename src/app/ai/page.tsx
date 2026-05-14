@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
-import { ArrowUp, Loader2, Plus, History } from "lucide-react";
+import { ArrowUp, ArrowDown, Loader2, Plus, History } from "lucide-react";
 import { SparkleHighlight } from "@/components/icons";
 import { PageHeader } from "@/components/page-header";
 import { ChatHistory } from "@/components/chat-history";
@@ -51,6 +51,8 @@ function AIPageContent() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const restoredRef = useRef(false);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [showScrollDown, setShowScrollDown] = useState(false);
 
   const { messages, sendMessage, status, setMessages } = useChat();
 
@@ -89,12 +91,31 @@ function AIPageContent() {
     }
   }, [conversationId, searchParams, router]);
 
-  // Auto-scroll on new messages
+  // Track scroll position to decide auto-scroll and show/hide arrow
   useEffect(() => {
-    if (scrollRef.current) {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      setIsNearBottom(nearBottom);
+      setShowScrollDown(!nearBottom && messages.length > 0);
+    };
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [messages.length]);
+
+  // Only auto-scroll when near bottom
+  useEffect(() => {
+    if (isNearBottom && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isNearBottom]);
+
+  const scrollToBottom = useCallback(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, []);
 
   // Derive a title from the first user message
   const deriveTitle = useCallback((msgs: typeof messages) => {
@@ -371,6 +392,18 @@ function AIPageContent() {
           )}
         </div>
       </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollDown && (
+        <div className="flex justify-center">
+          <button
+            onClick={scrollToBottom}
+            className="flex items-center justify-center h-8 w-8 rounded-full border border-border bg-card text-muted-foreground shadow-md hover:bg-accent hover:text-foreground transition-all"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Input area */}
       <div className="mt-3 mb-4 sm:mb-0 shrink-0">

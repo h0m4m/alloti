@@ -25,7 +25,6 @@ const ImportTokenSchema = new Schema<IImportToken>(
   { timestamps: true }
 );
 
-ImportTokenSchema.index({ token: 1 });
 
 export const ImportToken =
   mongoose.models.ImportToken ||
