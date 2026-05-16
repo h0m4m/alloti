@@ -182,7 +182,7 @@ function AddExpenseFormInner({
             <button
               key={cat._id}
               type="button"
-              className={`px-3 py-1.5 rounded-full text-sm transition-all ${
+              className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
                 categoryId === cat._id
                   ? "ring-2 ring-offset-2 ring-offset-background font-medium"
                   : "opacity-60 hover:opacity-100"
@@ -190,7 +190,9 @@ function AddExpenseFormInner({
               style={{
                 backgroundColor: cat.color + "20",
                 color: cat.color,
-                ...(categoryId === cat._id ? { ringColor: cat.color } : {}),
+                ...(categoryId === cat._id
+                  ? { "--tw-ring-color": cat.color } as React.CSSProperties
+                  : {}),
               }}
               onClick={() => {
                 setCategoryId(cat._id);
