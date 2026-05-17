@@ -41,7 +41,7 @@ export function BottomNav({ periods }: Props) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
 
-  const topLevelPages = ["/", "/expenses", "/ai", "/reports"];
+  const topLevelPages = ["/", "/expenses", "/investments", "/ai", "/reports"];
   if (!topLevelPages.includes(pathname)) return null;
 
   return (

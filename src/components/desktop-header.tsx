@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Target,
   BarChart3,
+  Briefcase,
 } from "lucide-react";
 import { SparkleHighlight } from "@/components/icons";
 import { NotificationsBell } from "@/components/notifications-card";
@@ -21,6 +22,7 @@ const NAV_LINKS = [
   { href: "/income", label: "Income", icon: TrendingUp },
   { href: "/recurring", label: "Recurring", icon: CalendarClock },
   { href: "/expenses", label: "Expenses", icon: Receipt },
+  { href: "/investments", label: "Invest", icon: Briefcase },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/ai", label: "AI", icon: SparkleHighlight },

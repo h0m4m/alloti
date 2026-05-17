@@ -243,3 +243,107 @@ export interface ChatMessage {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parts: any[];
 }
+
+// ── Investment Module ──
+
+export type InvestmentAccountType = "brokerage" | "manual" | "retirement" | "other";
+
+export interface InvestmentAccount {
+  _id: string;
+  name: string;
+  type: InvestmentAccountType;
+  currency: string;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AssetType = "stock" | "etf" | "mutual_fund" | "other";
+
+export interface InvestmentAsset {
+  _id: string;
+  symbol: string;
+  name: string;
+  assetType: AssetType;
+  exchange: string | null;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type InvestmentTransactionType =
+  | "buy"
+  | "sell"
+  | "dividend"
+  | "deposit"
+  | "withdrawal"
+  | "fee"
+  | "split";
+
+export interface InvestmentTransaction {
+  _id: string;
+  investmentAccountId: string;
+  assetId: string | null;
+  type: InvestmentTransactionType;
+  quantity: number | null;
+  pricePerUnit: number | null;
+  totalAmount: number;
+  fees: number;
+  currency: string;
+  transactionDate: string;
+  note: string | null;
+  splitRatioNumerator: number | null;
+  splitRatioDenominator: number | null;
+  createdAt: string;
+  updatedAt: string;
+  // populated fields
+  asset?: InvestmentAsset;
+  account?: InvestmentAccount;
+}
+
+export interface PriceSnapshot {
+  _id: string;
+  assetId: string;
+  symbol: string;
+  price: number;
+  currency: string;
+  source: "finnhub" | "manual";
+  priceDate: string;
+  createdAt: string;
+}
+
+export interface HoldingData {
+  assetId: string;
+  investmentAccountId: string;
+  symbol: string;
+  name: string;
+  assetType: AssetType;
+  quantity: number;
+  averageCost: number;
+  costBasis: number;
+  latestPrice: number;
+  currentValue: number;
+  unrealizedGainLoss: number;
+  realizedGainLoss: number;
+  dividendsReceived: number;
+  standaloneFees: number;
+  totalReturn: number;
+  totalReturnPercentage: number;
+  allocationPercentage: number;
+  lastPriceUpdate: string | null;
+}
+
+export interface PortfolioDashboard {
+  totalPortfolioValue: number;
+  totalHoldingsValue: number;
+  totalInvested: number;
+  totalUnrealizedGainLoss: number;
+  totalRealizedGainLoss: number;
+  totalDividendsReceived: number;
+  totalReturn: number;
+  totalReturnPercentage: number;
+  lastPriceUpdate: string | null;
+  holdings: HoldingData[];
+  recentTransactions: InvestmentTransaction[];
+  accounts: InvestmentAccount[];
+}

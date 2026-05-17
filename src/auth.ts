@@ -20,8 +20,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
     authorized: async ({ auth: session, request }) => {
-      // Allow public API routes (webhook endpoints)
+      // Allow public API routes (webhook endpoints, cron jobs)
       if (request?.nextUrl?.pathname.startsWith("/api/import/")) {
+        return true;
+      }
+      if (request?.nextUrl?.pathname.startsWith("/api/cron/")) {
         return true;
       }
       return !!session;

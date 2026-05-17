@@ -5,6 +5,7 @@ import {
   CalendarClock,
   AlertTriangle,
   Target,
+  Briefcase,
 } from "lucide-react";
 import { getBudgetPeriods, getUpcomingRecurring, getSavingsGoals } from "@/lib/actions";
 import { BudgetPeriodCard } from "@/components/budget-period-card";
@@ -54,6 +55,12 @@ export default async function Home() {
           <Button variant="outline" size="sm" className="w-full gap-1.5">
             <Target className="h-4 w-4" />
             Goals
+          </Button>
+        </Link>
+        <Link href="/investments" className="flex-1">
+          <Button variant="outline" size="sm" className="w-full gap-1.5">
+            <Briefcase className="h-4 w-4" />
+            Invest
           </Button>
         </Link>
       </div>
