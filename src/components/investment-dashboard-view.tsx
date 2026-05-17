@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageHeader } from "@/components/page-header";
 import { Currency } from "@/components/currency";
 import { AddInvestmentTransactionForm } from "@/components/add-investment-transaction-form";
 import { formatDate, formatDateInput } from "@/lib/format";
@@ -34,12 +35,6 @@ import {
   updateInvestmentTransaction,
   deleteInvestmentTransaction,
 } from "@/lib/investment-actions";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-} from "recharts";
 import type { PortfolioDashboard, InvestmentTransaction } from "@/lib/types";
 
 interface Props {
@@ -120,7 +115,7 @@ export function InvestmentDashboardView({ dashboard }: Props) {
 
   if (!hasAccounts) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-8">
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-4 lg:px-6 pt-8 sm:pt-2 pb-8">
         <div className="text-center py-16 sm:py-24 space-y-3">
           <Briefcase className="h-10 w-10 text-muted-foreground mx-auto" />
           <p className="text-muted-foreground">
@@ -139,10 +134,10 @@ export function InvestmentDashboardView({ dashboard }: Props) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-8 space-y-6">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-4 lg:px-6 pt-8 sm:pt-2 pb-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Investments</h1>
+        <PageHeader crumbs={[{ label: "Home", href: "/" }]} title="Investments" />
         <div className="flex gap-2">
           <Link href="/investments/accounts">
             <Button variant="outline" size="sm" className="gap-1.5">
@@ -162,171 +157,124 @@ export function InvestmentDashboardView({ dashboard }: Props) {
       </div>
 
       {/* Portfolio Summary */}
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Portfolio Value</p>
-            <p className="text-lg font-bold mt-1">
-              <Currency amount={dashboard.totalPortfolioValue} />
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Invested</p>
-            <p className="text-lg font-bold mt-1">
-              <Currency amount={dashboard.totalInvested} />
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Return</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              {dashboard.totalReturn >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-600" />
-              )}
-              <p
-                className={`text-lg font-bold ${
-                  dashboard.totalReturn >= 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                <Currency amount={Math.abs(dashboard.totalReturn)} />
+      <Card>
+        <CardContent className="p-4 sm:p-5 space-y-3">
+          {/* Value + Stats in one row */}
+          <div className={`grid gap-3 ${dashboard.totalDividendsReceived > 0 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Portfolio Value</p>
+              <p className="text-lg font-bold mt-0.5">
+                <Currency amount={dashboard.totalPortfolioValue} />
+              </p>
+              <div className="flex items-center gap-1 mt-0.5">
+                {dashboard.totalReturn >= 0 ? (
+                  <TrendingUp className="h-3 w-3 text-green-600" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 text-red-600" />
+                )}
+                <span
+                  className={`text-xs font-medium ${
+                    dashboard.totalReturn >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {dashboard.totalReturnPercentage >= 0 ? "+" : ""}
+                  {dashboard.totalReturnPercentage.toFixed(2)}%
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Invested</p>
+              <p className="text-lg font-bold mt-0.5">
+                <Currency amount={dashboard.totalInvested} />
               </p>
             </div>
-            <p
-              className={`text-xs ${
-                dashboard.totalReturnPercentage >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
-            >
-              {dashboard.totalReturnPercentage >= 0 ? "+" : ""}
-              {dashboard.totalReturnPercentage.toFixed(2)}%
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Dividends</p>
-            <p className="text-lg font-bold mt-1 text-blue-600">
-              <Currency amount={dashboard.totalDividendsReceived} />
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Unrealized P/L</p>
+              <p
+                className={`text-lg font-bold mt-0.5 ${
+                  dashboard.totalUnrealizedGainLoss >= 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {dashboard.totalUnrealizedGainLoss >= 0 ? "+" : ""}
+                <Currency amount={Math.abs(dashboard.totalUnrealizedGainLoss)} />
+              </p>
+            </div>
+            {dashboard.totalDividendsReceived > 0 && (
+              <div>
+                <p className="text-[11px] text-muted-foreground">Dividends</p>
+                <p className="text-lg font-bold mt-0.5 text-blue-600">
+                  <Currency amount={dashboard.totalDividendsReceived} />
+                </p>
+              </div>
+            )}
+          </div>
 
-      {/* Gain/Loss Breakdown */}
-      <div className="grid gap-3 grid-cols-3">
-        <Card>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">Unrealized P/L</p>
-            <p
-              className={`text-sm font-semibold mt-0.5 ${
-                dashboard.totalUnrealizedGainLoss >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
-            >
-              {dashboard.totalUnrealizedGainLoss >= 0 ? "+" : ""}
-              <Currency amount={Math.abs(dashboard.totalUnrealizedGainLoss)} />
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">Realized P/L</p>
-            <p
-              className={`text-sm font-semibold mt-0.5 ${
-                dashboard.totalRealizedGainLoss >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
-            >
-              {dashboard.totalRealizedGainLoss >= 0 ? "+" : ""}
-              <Currency amount={Math.abs(dashboard.totalRealizedGainLoss)} />
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">Dividends</p>
-            <p className="text-sm font-semibold mt-0.5 text-blue-600">
-              <Currency amount={dashboard.totalDividendsReceived} />
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Allocation bar */}
+          {hasHoldings && <AllocationBar holdings={dashboard.holdings} />}
+        </CardContent>
+      </Card>
 
-      {/* Allocation Donut */}
-      {hasHoldings && <AllocationDonut holdings={dashboard.holdings} />}
-
-      {/* Last Update */}
-      {dashboard.lastPriceUpdate && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
-          Prices updated {formatDate(dashboard.lastPriceUpdate)}
-        </div>
-      )}
-
-      {/* Top Holdings */}
+      {/* Holdings */}
       {hasHoldings ? (
         <section className="space-y-3">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Holdings
-          </h2>
-          <div className="space-y-2">
-            {dashboard.holdings.map((h) => (
-              <Link
-                key={`${h.investmentAccountId}_${h.assetId}`}
-                href={`/investments/asset/${h.assetId}`}
-              >
-                <Card className="transition-colors hover:bg-accent/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold">
-                            {h.symbol}
-                          </span>
-                          <span className="text-xs text-muted-foreground truncate">
-                            {h.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span>{h.quantity.toFixed(2)} shares</span>
-                          <span>
-                            Avg <Currency amount={h.averageCost} />
-                          </span>
-                          <span>{h.allocationPercentage.toFixed(1)}%</span>
-                        </div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Holdings
+            </h2>
+            {dashboard.lastPriceUpdate && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {formatDate(dashboard.lastPriceUpdate)}
+              </div>
+            )}
+          </div>
+          <Card>
+            <CardContent className="p-0 divide-y divide-border">
+              {dashboard.holdings.map((h) => (
+                <Link
+                  key={`${h.investmentAccountId}_${h.assetId}`}
+                  href={`/investments/asset/${h.assetId}`}
+                  className="block transition-colors hover:bg-accent/50 first:rounded-t-xl last:rounded-b-xl"
+                >
+                  <div className="flex items-center justify-between p-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">
+                          {h.symbol}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                          {h.name}
+                        </span>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-semibold">
-                          <Currency amount={h.currentValue} />
-                        </p>
-                        <p
-                          className={`text-xs ${
-                            h.unrealizedGainLoss >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {h.unrealizedGainLoss >= 0 ? "+" : ""}
-                          <Currency amount={Math.abs(h.unrealizedGainLoss)} />
-                          {" "}
-                          ({h.totalReturnPercentage >= 0 ? "+" : ""}
-                          {h.totalReturnPercentage.toFixed(2)}%)
-                        </p>
+                      <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-muted-foreground">
+                        <span>{h.quantity.toFixed(2)} shares</span>
+                        <span className="hidden sm:inline">
+                          Avg <Currency amount={h.averageCost} />
+                        </span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold">
+                        <Currency amount={h.currentValue} />
+                      </p>
+                      <p
+                        className={`text-xs ${
+                          h.unrealizedGainLoss >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {h.unrealizedGainLoss >= 0 ? "+" : ""}
+                        {h.totalReturnPercentage.toFixed(2)}%
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
         </section>
       ) : (
         <Card>
@@ -515,71 +463,45 @@ const DONUT_COLORS = [
 
 import type { HoldingData } from "@/lib/types";
 
-function AllocationDonut({ holdings }: { holdings: HoldingData[] }) {
+function AllocationBar({ holdings }: { holdings: HoldingData[] }) {
   const data = holdings
     .filter((h) => h.currentValue > 0)
     .map((h) => ({
       symbol: h.symbol,
-      name: h.name,
-      value: h.currentValue,
       pct: h.allocationPercentage,
     }));
 
   if (data.length === 0) return null;
 
-  const total = data.reduce((s, d) => s + d.value, 0);
-
   return (
-    <Card className="w-fit">
-      <CardContent className="p-3">
-        <div className="flex items-center gap-4">
-          <div className="relative h-40 w-40 shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  dataKey="value"
-                  nameKey="symbol"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={45}
-                  outerRadius={72}
-                  paddingAngle={2}
-                  strokeWidth={0}
-                >
-                  {data.map((_, i) => (
-                    <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-sm font-semibold">
-                {data.length}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {data.length === 1 ? "asset" : "assets"}
-              </span>
-            </div>
+    <div className="pt-3 border-t border-border space-y-2">
+      {/* Stacked bar */}
+      <div className="flex h-2.5 rounded-full overflow-hidden">
+        {data.map((item, i) => (
+          <div
+            key={item.symbol}
+            className="h-full first:rounded-l-full last:rounded-r-full"
+            style={{
+              width: `${item.pct}%`,
+              backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length],
+            }}
+          />
+        ))}
+      </div>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {data.map((item, i) => (
+          <div key={item.symbol} className="flex items-center gap-1.5">
+            <span
+              className="inline-block h-2 w-2 rounded-full shrink-0"
+              style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }}
+            />
+            <span className="text-xs text-muted-foreground">
+              {item.symbol} {item.pct.toFixed(1)}%
+            </span>
           </div>
-          <div className="flex-1 space-y-1.5 min-w-0">
-            {data.map((item, i) => (
-              <div key={item.symbol} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }}
-                  />
-                  <span className="truncate">{item.symbol}</span>
-                </div>
-                <span className="text-muted-foreground shrink-0 ml-2">
-                  {item.pct.toFixed(1)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        ))}
+      </div>
+    </div>
   );
 }

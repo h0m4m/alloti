@@ -81,7 +81,7 @@ export function InvestmentReportsView({ holdings, history }: Props) {
     }));
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-8 space-y-6">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-4 lg:px-6 pt-8 sm:pt-2 pb-8 space-y-6">
       <PageHeader
         crumbs={[{ label: "Investments", href: "/investments" }]}
         title="Reports"

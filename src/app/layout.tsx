@@ -3,7 +3,7 @@ import { Geist } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { BottomNav } from "@/components/bottom-nav";
-import { DesktopHeader } from "@/components/desktop-header";
+import { DesktopSidebar } from "@/components/desktop-header";
 import { MainContent } from "@/components/main-content";
 import { MobileHeader } from "@/components/mobile-header";
 import { CurrencyProvider } from "@/components/currency-provider";
@@ -86,7 +86,7 @@ export default async function RootLayout({
         >
           <SessionProvider>
             <CurrencyProvider currency={currency} />
-            {user && <DesktopHeader notifications={notifications} user={user} />}
+            {user && <DesktopSidebar notifications={notifications} user={user} />}
             {user && <MobileHeader notifications={notifications} user={user} />}
             <MainContent>{children}</MainContent>
             <BottomNav periods={periods} />

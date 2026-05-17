@@ -18,7 +18,7 @@ export default async function NewBudgetPage({
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-8">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-4 lg:px-6 pt-8 sm:pt-2 pb-8">
       <CreateBudgetForm
         suggestions={suggestions}
         previousBudgets={periods}

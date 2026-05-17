@@ -277,7 +277,7 @@ function AIPageContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-2 sm:pb-8 flex flex-col h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] sm:h-[calc(100dvh-5rem)]">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-4 lg:px-6 pt-8 sm:pt-2 pb-2 sm:pb-8 flex flex-col h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] sm:h-[calc(100dvh-5rem)]">
       <div className="flex items-center justify-between">
         <PageHeader crumbs={[{ label: "Home", href: "/" }]} title="AI Assistant" />
         <TooltipProvider>

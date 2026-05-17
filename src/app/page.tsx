@@ -36,7 +36,7 @@ export default async function Home() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-6 pb-8 space-y-6">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-4 lg:px-6 pt-8 sm:pt-2 pb-8 space-y-6">
       {/* Mobile quick links — only for pages not in bottom nav */}
       <div className="flex gap-2 sm:hidden">
         <Link href="/income" className="flex-1">
