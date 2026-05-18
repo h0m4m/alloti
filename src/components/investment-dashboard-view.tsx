@@ -16,6 +16,7 @@ import {
   Trash2,
   RefreshCw,
   MoreHorizontal,
+  Search,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ import {
   syncPrices,
 } from "@/lib/investment-actions";
 import { ValueChart } from "@/components/value-chart";
+import { StockLogo } from "@/components/stock-logo";
 import type { PortfolioDashboard, InvestmentTransaction } from "@/lib/types";
 
 interface ChartPoint {
@@ -52,9 +54,19 @@ interface ChartPoint {
   cost: number;
 }
 
+interface WatchlistEntry {
+  _id: string;
+  symbol: string;
+  name: string;
+  assetType: string;
+  price: number | null;
+  addedAt: string;
+}
+
 interface Props {
   dashboard: PortfolioDashboard;
   chartData: ChartPoint[];
+  watchlist: WatchlistEntry[];
 }
 
 const TX_TYPE_LABELS: Record<string, string> = {
@@ -69,7 +81,7 @@ const TX_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   dividend: { bg: "rgba(59,130,246,0.15)", text: "rgb(59,130,246)" },
 };
 
-export function InvestmentDashboardView({ dashboard, chartData }: Props) {
+export function InvestmentDashboardView({ dashboard, chartData, watchlist }: Props) {
   const router = useRouter();
   const [showAddTx, setShowAddTx] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -193,6 +205,12 @@ export function InvestmentDashboardView({ dashboard, chartData }: Props) {
       <div className="flex items-center justify-between">
         <PageHeader crumbs={[{ label: "Home", href: "/" }]} title="Investments" />
         <div className="flex gap-2">
+          <Link href="/investments/search">
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <Search className="h-4 w-4" />
+              <span className="hidden sm:inline">Search</span>
+            </Button>
+          </Link>
           <Link href="/investments/accounts">
             <Button variant="outline" size="sm" className="gap-1.5">
               <Landmark className="h-4 w-4" />
@@ -315,9 +333,10 @@ export function InvestmentDashboardView({ dashboard, chartData }: Props) {
                 <Link
                   key={`${h.investmentAccountId}_${h.assetId}`}
                   href={`/investments/asset/${h.assetId}`}
-                  className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-accent/50 first:rounded-t-xl last:rounded-b-xl"
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50 first:rounded-t-xl last:rounded-b-xl"
                 >
-                    <div className="min-w-0">
+                    <StockLogo symbol={h.symbol} size={32} />
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">
                           {h.symbol}
@@ -370,6 +389,44 @@ export function InvestmentDashboardView({ dashboard, chartData }: Props) {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Watchlist */}
+      {watchlist.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Watchlist
+            </h2>
+            <Link href="/investments/search" className="text-xs text-muted-foreground hover:text-foreground">
+              Edit
+            </Link>
+          </div>
+          <Card>
+            <CardContent className="p-0 divide-y divide-border">
+              {watchlist.map((w) => (
+                <Link
+                  key={w._id}
+                  href={`/investments/search/${w.symbol}`}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50 first:rounded-t-xl last:rounded-b-xl"
+                >
+                  <StockLogo symbol={w.symbol} size={32} />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-semibold">{w.symbol}</span>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {w.name}
+                    </p>
+                  </div>
+                  {w.price != null && (
+                    <span className="text-sm font-medium tabular-nums shrink-0">
+                      ${w.price.toFixed(2)}
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
       )}
 
       {/* Recent Transactions */}

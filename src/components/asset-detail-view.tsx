@@ -10,6 +10,7 @@ import {
   Pencil,
   Trash2,
   MoreHorizontal,
+  ExternalLink,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Currency } from "@/components/currency";
 import { ValueChart } from "@/components/value-chart";
+import { StockLogo } from "@/components/stock-logo";
 import { formatDate, formatDateInput } from "@/lib/format";
 import {
   setManualPrice,
@@ -44,6 +46,14 @@ import type {
 } from "@/lib/types";
 import type { FullHoldingCalculation } from "@/lib/holdings-calculator";
 
+interface NewsItem {
+  title: string;
+  publisher: string;
+  link: string;
+  publishedAt: string;
+  thumbnail: string | null;
+}
+
 interface Props {
   detail: {
     asset: InvestmentAsset;
@@ -53,6 +63,7 @@ interface Props {
     lastPriceUpdate: string | null;
   };
   priceChart: { date: string; value: number }[];
+  news: NewsItem[];
 }
 
 const TX_TYPE_LABELS: Record<string, string> = {
@@ -67,7 +78,17 @@ const TX_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   dividend: { bg: "rgba(59,130,246,0.15)", text: "rgb(59,130,246)" },
 };
 
-export function AssetDetailView({ detail, priceChart }: Props) {
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+export function AssetDetailView({ detail, priceChart, news }: Props) {
   const router = useRouter();
   const { asset, holding, transactions, lastPriceUpdate } = detail;
   const cur = asset.currency ?? "USD";
@@ -152,9 +173,12 @@ export function AssetDetailView({ detail, priceChart }: Props) {
           crumbs={[{ label: "Investments", href: "/investments" }]}
           title={asset.symbol}
         >
-          <div>
-            <h1 className="text-xl font-bold">{asset.symbol}</h1>
-            <p className="text-xs text-muted-foreground">{asset.name}</p>
+          <div className="flex items-center gap-3">
+            <StockLogo symbol={asset.symbol} size={36} />
+            <div>
+              <h1 className="text-xl font-bold">{asset.symbol}</h1>
+              <p className="text-xs text-muted-foreground">{asset.name}</p>
+            </div>
           </div>
         </PageHeader>
         <Button
@@ -364,6 +388,47 @@ export function AssetDetailView({ detail, priceChart }: Props) {
           </Card>
         )}
       </section>
+
+      {/* News */}
+      {news.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            News
+          </h2>
+          <Card>
+            <CardContent className="p-0 divide-y divide-border">
+              {news.map((article, i) => (
+                <a
+                  key={i}
+                  href={article.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex gap-3 px-4 py-3 transition-colors hover:bg-accent/50 first:rounded-t-xl last:rounded-b-xl"
+                >
+                  {article.thumbnail && (
+                    <img
+                      src={article.thumbnail}
+                      alt=""
+                      className="h-16 w-16 rounded-lg object-cover shrink-0"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium line-clamp-2">
+                      {article.title}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                      <span>{article.publisher}</span>
+                      <span>·</span>
+                      <span>{timeAgo(article.publishedAt)}</span>
+                    </div>
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1" />
+                </a>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Edit Transaction Dialog */}
       <Dialog

@@ -7,6 +7,7 @@ import { InvestmentAsset } from "@/lib/models/investment-asset";
 import { InvestmentTransaction } from "@/lib/models/investment-transaction";
 import { PriceSnapshot } from "@/lib/models/price-snapshot";
 import { HoldingSnapshot } from "@/lib/models/holding-snapshot";
+import { WatchlistItem } from "@/lib/models/watchlist-item";
 import {
   calculateHoldingFromTransactions,
   calculateFullHolding,
@@ -824,4 +825,91 @@ export async function getPortfolioChartData() {
   }
 
   return chart;
+}
+
+// ── Watchlist ──
+
+export async function getWatchlist() {
+  const userId = await requireUser();
+  await connectDB();
+
+  const items = await WatchlistItem.find({ userId })
+    .sort({ addedAt: -1 })
+    .lean();
+
+  if (items.length === 0) return [];
+
+  // Fetch live quotes for all watchlist symbols
+  const provider = new YahooFinanceProvider();
+  const symbols = items.map((i) => i.symbol);
+  const quotes = await provider.getBatchQuotes(symbols);
+  const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
+
+  return items.map((item) => {
+    const quote = quoteMap.get(item.symbol);
+    return {
+      _id: String(item._id),
+      symbol: item.symbol,
+      name: item.name,
+      assetType: item.assetType,
+      price: quote?.price ?? null,
+      addedAt: item.addedAt.toISOString(),
+    };
+  });
+}
+
+export async function addToWatchlist(data: {
+  symbol: string;
+  name: string;
+  assetType: "stock" | "etf";
+}) {
+  const userId = await requireUser();
+  await connectDB();
+
+  await WatchlistItem.findOneAndUpdate(
+    { userId, symbol: data.symbol },
+    { $setOnInsert: { name: data.name, assetType: data.assetType, addedAt: new Date() } },
+    { upsert: true }
+  );
+
+  revalidatePath("/investments");
+}
+
+export async function removeFromWatchlist(symbol: string) {
+  const userId = await requireUser();
+  await connectDB();
+
+  await WatchlistItem.deleteOne({ userId, symbol });
+  revalidatePath("/investments");
+}
+
+export async function isInWatchlist(symbol: string): Promise<boolean> {
+  const userId = await requireUser();
+  await connectDB();
+  const item = await WatchlistItem.findOne({ userId, symbol }).lean();
+  return !!item;
+}
+
+export async function getSymbolNews(symbol: string) {
+  const provider = new YahooFinanceProvider();
+  return provider.getNews(symbol, 10);
+}
+
+export async function searchSymbolsWithQuotes(query: string) {
+  if (!query || query.length < 1) return [];
+
+  const provider = new YahooFinanceProvider();
+  const results = await provider.searchSymbol(query);
+
+  // Fetch live prices for search results
+  const symbols = results.map((r) => r.symbol);
+  const quotes = await provider.getBatchQuotes(symbols);
+  const quoteMap = new Map(quotes.map((q) => [q.symbol, q]));
+
+  return results.map((r) => ({
+    symbol: r.symbol,
+    name: r.description,
+    type: r.type,
+    price: quoteMap.get(r.symbol)?.price ?? null,
+  }));
 }

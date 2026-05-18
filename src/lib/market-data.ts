@@ -107,6 +107,44 @@ export class YahooFinanceProvider implements MarketDataProvider {
     return candles;
   }
 
+  async getNews(
+    symbol: string,
+    count: number = 10
+  ): Promise<
+    Array<{
+      title: string;
+      publisher: string;
+      link: string;
+      publishedAt: string;
+      thumbnail: string | null;
+    }>
+  > {
+    const url = `${YAHOO_SEARCH}?q=${encodeURIComponent(symbol)}&newsCount=${count}&quotesCount=0`;
+    const res = await fetch(url, { headers: HEADERS });
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const news = data.news ?? [];
+
+    return news.map(
+      (n: {
+        title: string;
+        publisher: string;
+        link: string;
+        providerPublishTime?: number;
+        thumbnail?: { resolutions?: Array<{ url: string }> };
+      }) => ({
+        title: n.title,
+        publisher: n.publisher,
+        link: n.link,
+        publishedAt: n.providerPublishTime
+          ? new Date(n.providerPublishTime * 1000).toISOString()
+          : new Date().toISOString(),
+        thumbnail: n.thumbnail?.resolutions?.[0]?.url ?? null,
+      })
+    );
+  }
+
   async searchSymbol(
     query: string
   ): Promise<Array<{ symbol: string; description: string; type: string }>> {

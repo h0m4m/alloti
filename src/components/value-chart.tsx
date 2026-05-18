@@ -109,18 +109,19 @@ export function ValueChart({
               domain={[minVal * 0.98, maxVal * 1.02]}
             />
             <Tooltip
-              contentStyle={{
-                backgroundColor: "oklch(var(--card))",
-                border: "1px solid oklch(var(--border))",
-                borderRadius: "0.5rem",
-                fontSize: 12,
-                padding: "6px 10px",
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                return (
+                  <div className="bg-card text-card-foreground border border-border rounded-lg px-3 py-2 text-xs shadow-md">
+                    <p className="font-medium mb-1">{formatShortDate(String(label))}</p>
+                    {payload.map((p, i) => (
+                      <p key={i} style={{ color: p.color }}>
+                        {p.name}: ${Number(p.value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    ))}
+                  </div>
+                );
               }}
-              formatter={(value: unknown, name: unknown) => [
-                `$${Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                String(name),
-              ]}
-              labelFormatter={(label: unknown) => formatShortDate(String(label))}
             />
             {showCostBasis && (
               <Area
