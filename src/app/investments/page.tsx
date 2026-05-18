@@ -1,7 +1,13 @@
-import { getInvestmentDashboard } from "@/lib/investment-actions";
+import {
+  getInvestmentDashboard,
+  getPortfolioChartData,
+} from "@/lib/investment-actions";
 import { InvestmentDashboardView } from "@/components/investment-dashboard-view";
 
 export default async function InvestmentsPage() {
-  const dashboard = await getInvestmentDashboard();
-  return <InvestmentDashboardView dashboard={dashboard} />;
+  const [dashboard, chartData] = await Promise.all([
+    getInvestmentDashboard(),
+    getPortfolioChartData(),
+  ]);
+  return <InvestmentDashboardView dashboard={dashboard} chartData={chartData} />;
 }

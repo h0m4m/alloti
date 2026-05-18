@@ -307,7 +307,7 @@ export interface PriceSnapshot {
   symbol: string;
   price: number;
   currency: string;
-  source: "finnhub" | "manual";
+  source: "finnhub" | "yahoo" | "manual";
   priceDate: string;
   createdAt: string;
 }

@@ -1,4 +1,4 @@
-import { getAssetDetail } from "@/lib/investment-actions";
+import { getAssetDetail, getSymbolHistory } from "@/lib/investment-actions";
 import { AssetDetailView } from "@/components/asset-detail-view";
 
 export default async function AssetDetailPage({
@@ -8,5 +8,6 @@ export default async function AssetDetailPage({
 }) {
   const { id } = await params;
   const detail = await getAssetDetail(id);
-  return <AssetDetailView detail={detail} />;
+  const priceChart = await getSymbolHistory(detail.asset.symbol);
+  return <AssetDetailView detail={detail} priceChart={priceChart} />;
 }

@@ -6,7 +6,7 @@ export interface IPriceSnapshot extends Document {
   symbol: string;
   price: number;
   currency: string;
-  source: "finnhub" | "manual";
+  source: "finnhub" | "yahoo" | "manual";
   priceDate: Date;
   rawResponseJson: unknown;
   createdAt: Date;
@@ -24,7 +24,7 @@ const PriceSnapshotSchema = new Schema<IPriceSnapshot>(
     currency: { type: String, required: true, default: "USD" },
     source: {
       type: String,
-      enum: ["finnhub", "manual"],
+      enum: ["finnhub", "yahoo", "manual"],
       required: true,
     },
     priceDate: { type: Date, required: true },

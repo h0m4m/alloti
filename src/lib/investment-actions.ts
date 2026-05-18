@@ -11,6 +11,7 @@ import {
   calculateHoldingFromTransactions,
   calculateFullHolding,
 } from "@/lib/holdings-calculator";
+import { YahooFinanceProvider } from "@/lib/market-data";
 import { auth } from "@/auth";
 import type {
   InvestmentAccountType,
@@ -131,11 +132,7 @@ export async function createInvestmentAsset(data: {
 }
 
 export async function searchAssetSymbol(query: string) {
-  const { FinnhubMarketDataProvider } = await import("@/lib/market-data");
-  const apiKey = process.env.FINNHUB_API_KEY;
-  if (!apiKey) return [];
-
-  const provider = new FinnhubMarketDataProvider(apiKey);
+  const provider = new YahooFinanceProvider();
   return provider.searchSymbol(query);
 }
 
@@ -149,16 +146,12 @@ export async function getLatestPrice(assetId: string): Promise<number | null> {
     .lean();
   if (snapshot) return snapshot.price;
 
-  // Fallback: fetch live from Finnhub
+  // Fallback: fetch live from Yahoo Finance
   const asset = await InvestmentAsset.findById(assetId).lean();
   if (!asset) return null;
 
-  const { FinnhubMarketDataProvider } = await import("@/lib/market-data");
-  const apiKey = process.env.FINNHUB_API_KEY;
-  if (!apiKey) return null;
-
   try {
-    const provider = new FinnhubMarketDataProvider(apiKey);
+    const provider = new YahooFinanceProvider();
     const quote = await provider.getQuote(asset.symbol);
     return quote.price;
   } catch {
@@ -585,4 +578,250 @@ export async function getPortfolioHistory(days: number = 30) {
   }
 
   return JSON.parse(JSON.stringify([...byDate.values()]));
+}
+
+// ── Sync Prices ──
+
+const SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const lastSyncByUser = new Map<string, number>();
+
+export async function syncPrices(): Promise<{
+  success: boolean;
+  error?: string;
+  updated?: number;
+  cooldownRemaining?: number;
+}> {
+  const userId = await requireUser();
+
+  // Enforce per-user cooldown
+  const lastSync = lastSyncByUser.get(userId) ?? 0;
+  const elapsed = Date.now() - lastSync;
+  if (elapsed < SYNC_COOLDOWN_MS) {
+    const remaining = Math.ceil((SYNC_COOLDOWN_MS - elapsed) / 1000);
+    return { success: false, error: "cooldown", cooldownRemaining: remaining };
+  }
+
+  await connectDB();
+
+  // Find user's active assets
+  const userAssetIds = await InvestmentTransaction.distinct("assetId", {
+    userId,
+    assetId: { $ne: null },
+  });
+
+  const assets = await InvestmentAsset.find({
+    _id: { $in: userAssetIds },
+  }).lean();
+
+  if (assets.length === 0) {
+    return { success: true, updated: 0 };
+  }
+
+  const provider = new YahooFinanceProvider();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let updated = 0;
+  for (const asset of assets) {
+    try {
+      const quote = await provider.getQuote(asset.symbol);
+      await PriceSnapshot.findOneAndUpdate(
+        { assetId: String(asset._id), priceDate: today, source: "yahoo" },
+        {
+          $set: {
+            symbol: asset.symbol,
+            price: quote.price,
+            currency: asset.currency,
+            rawResponseJson: quote.raw,
+          },
+        },
+        { upsert: true }
+      );
+      updated++;
+    } catch {
+      // skip failed symbols
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
+  // Recalculate holdings for this user
+  const holdings = await InvestmentTransaction.aggregate([
+    { $match: { userId, assetId: { $ne: null } } },
+    {
+      $group: {
+        _id: { accountId: "$investmentAccountId", assetId: "$assetId" },
+      },
+    },
+  ]);
+
+  for (const doc of holdings) {
+    const { accountId, assetId } = doc._id;
+    try {
+      const txs = await InvestmentTransaction.find({
+        userId,
+        investmentAccountId: accountId,
+        assetId,
+      })
+        .sort({ transactionDate: 1, createdAt: 1 })
+        .lean();
+
+      const base = calculateHoldingFromTransactions(txs);
+      const latestSnapshot = await PriceSnapshot.findOne({ assetId })
+        .sort({ priceDate: -1 })
+        .lean();
+      const latestPrice = latestSnapshot?.price ?? base.averageCost;
+      const full = calculateFullHolding(base, latestPrice);
+
+      await HoldingSnapshot.findOneAndUpdate(
+        { userId, investmentAccountId: accountId, assetId, snapshotDate: today },
+        {
+          $set: {
+            quantity: full.quantity,
+            averageCost: full.averageCost,
+            costBasis: full.costBasis,
+            latestPrice: full.latestPrice,
+            currentValue: full.currentValue,
+            unrealizedGainLoss: full.unrealizedGainLoss,
+            realizedGainLoss: full.realizedGainLoss,
+            dividendsReceived: full.dividendsReceived,
+            standaloneFees: full.standaloneFees,
+            totalReturn: full.totalReturn,
+            totalReturnPercentage: full.totalReturnPercentage,
+            allocationPercentage: 0,
+          },
+        },
+        { upsert: true }
+      );
+    } catch {
+      // skip failed holdings
+    }
+  }
+
+  lastSyncByUser.set(userId, Date.now());
+  revalidatePath("/investments");
+
+  return { success: true, updated };
+}
+
+// ── Chart Data (live from Yahoo Finance) ──
+
+export async function getSymbolHistory(symbol: string) {
+  const provider = new YahooFinanceProvider();
+  const candles = await provider.getHistoricalPrices(symbol, "1y");
+  return candles.map((c) => ({ date: c.date, value: c.close }));
+}
+
+export async function getPortfolioChartData() {
+  const userId = await requireUser();
+  await connectDB();
+
+  // Get user's holdings with their symbols
+  const userAssetIds = await InvestmentTransaction.distinct("assetId", {
+    userId,
+    assetId: { $ne: null },
+  });
+
+  const assets = await InvestmentAsset.find({
+    _id: { $in: userAssetIds },
+  }).lean();
+
+  if (assets.length === 0) return [];
+
+  // Get all transactions to compute holdings at each date
+  const txs = await InvestmentTransaction.find({ userId, assetId: { $ne: null } })
+    .sort({ transactionDate: 1 })
+    .lean();
+
+  // Fetch historical prices for each symbol from Yahoo
+  const provider = new YahooFinanceProvider();
+  const pricesBySymbol = new Map<string, Map<string, number>>();
+
+  for (const asset of assets) {
+    try {
+      const candles = await provider.getHistoricalPrices(asset.symbol, "1y");
+      const map = new Map<string, number>();
+      for (const c of candles) map.set(c.date, c.close);
+      pricesBySymbol.set(String(asset._id), map);
+    } catch {
+      // skip
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
+  // Collect all trading dates
+  const allDates = new Set<string>();
+  for (const [, prices] of pricesBySymbol) {
+    for (const date of prices.keys()) allDates.add(date);
+  }
+  const sortedDates = [...allDates].sort();
+
+  const firstTxDate = new Date(txs[0].transactionDate)
+    .toISOString()
+    .split("T")[0];
+  const relevantDates = sortedDates.filter((d) => d >= firstTxDate);
+
+  // For each trading day, compute portfolio value and cost basis
+  const chart: { date: string; value: number; cost: number }[] = [];
+
+  for (const dateStr of relevantDates) {
+    // Transactions up to this date
+    const holdingsMap = new Map<
+      string,
+      { quantity: number; totalCost: number }
+    >();
+
+    for (const tx of txs) {
+      const txDate = new Date(tx.transactionDate).toISOString().split("T")[0];
+      if (txDate > dateStr) break;
+      if (!tx.assetId) continue;
+
+      const key = String(tx.assetId);
+      if (!holdingsMap.has(key)) {
+        holdingsMap.set(key, { quantity: 0, totalCost: 0 });
+      }
+      const h = holdingsMap.get(key)!;
+
+      if (tx.type === "buy") {
+        h.quantity += tx.quantity ?? 0;
+        h.totalCost += tx.totalAmount ?? 0;
+      } else if (tx.type === "sell") {
+        const avg = h.quantity > 0 ? h.totalCost / h.quantity : 0;
+        const qty = tx.quantity ?? 0;
+        h.quantity -= qty;
+        h.totalCost -= avg * qty;
+      }
+    }
+
+    let totalValue = 0;
+    let totalCost = 0;
+
+    for (const [assetId, h] of holdingsMap) {
+      if (h.quantity <= 0) continue;
+      totalCost += h.totalCost;
+
+      const prices = pricesBySymbol.get(assetId);
+      if (!prices) continue;
+
+      // Find closest price on or before this date
+      let price: number | null = null;
+      const d = new Date(dateStr);
+      for (let i = 0; i <= 5; i++) {
+        const check = new Date(d);
+        check.setDate(check.getDate() - i);
+        const checkStr = check.toISOString().split("T")[0];
+        if (prices.has(checkStr)) {
+          price = prices.get(checkStr)!;
+          break;
+        }
+      }
+
+      totalValue += h.quantity * (price ?? h.totalCost / h.quantity);
+    }
+
+    if (totalCost > 0) {
+      chart.push({ date: dateStr, value: totalValue, cost: totalCost });
+    }
+  }
+
+  return chart;
 }

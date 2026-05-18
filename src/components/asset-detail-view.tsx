@@ -9,10 +9,16 @@ import {
   Clock,
   Pencil,
   Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Currency } from "@/components/currency";
+import { ValueChart } from "@/components/value-chart";
 import { formatDate, formatDateInput } from "@/lib/format";
 import {
   setManualPrice,
@@ -45,6 +52,7 @@ interface Props {
     priceHistory: PriceSnapshot[];
     lastPriceUpdate: string | null;
   };
+  priceChart: { date: string; value: number }[];
 }
 
 const TX_TYPE_LABELS: Record<string, string> = {
@@ -53,15 +61,16 @@ const TX_TYPE_LABELS: Record<string, string> = {
   dividend: "Dividend",
 };
 
-const TX_TYPE_COLORS: Record<string, string> = {
-  buy: "bg-green-500/10 text-green-600 border-green-500/20",
-  sell: "bg-red-500/10 text-red-600 border-red-500/20",
-  dividend: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+const TX_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
+  buy: { bg: "rgba(34,197,94,0.15)", text: "rgb(34,197,94)" },
+  sell: { bg: "rgba(239,68,68,0.15)", text: "rgb(239,68,68)" },
+  dividend: { bg: "rgba(59,130,246,0.15)", text: "rgb(59,130,246)" },
 };
 
-export function AssetDetailView({ detail }: Props) {
+export function AssetDetailView({ detail, priceChart }: Props) {
   const router = useRouter();
   const { asset, holding, transactions, lastPriceUpdate } = detail;
+  const cur = asset.currency ?? "USD";
   const [showManualPrice, setShowManualPrice] = useState(false);
   const [manualPriceValue, setManualPriceValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -159,13 +168,22 @@ export function AssetDetailView({ detail }: Props) {
         </Button>
       </div>
 
+      {/* Price Chart */}
+      {priceChart.length >= 2 && (
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <ValueChart data={priceChart} height={180} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Key Metrics */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Current Value</p>
             <p className="text-lg font-bold mt-1">
-              <Currency amount={holding.currentValue} />
+              <Currency amount={holding.currentValue} currency={cur} />
             </p>
           </CardContent>
         </Card>
@@ -173,7 +191,7 @@ export function AssetDetailView({ detail }: Props) {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Latest Price</p>
             <p className="text-lg font-bold mt-1">
-              <Currency amount={holding.latestPrice} />
+              <Currency amount={holding.latestPrice} currency={cur} />
             </p>
           </CardContent>
         </Card>
@@ -189,7 +207,7 @@ export function AssetDetailView({ detail }: Props) {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Avg Cost</p>
             <p className="text-lg font-bold mt-1">
-              <Currency amount={holding.averageCost} />
+              <Currency amount={holding.averageCost} currency={cur} />
             </p>
           </CardContent>
         </Card>
@@ -213,7 +231,7 @@ export function AssetDetailView({ detail }: Props) {
                     : "text-red-600"
                 }`}
               >
-                <Currency amount={Math.abs(holding.unrealizedGainLoss)} />
+                <Currency amount={Math.abs(holding.unrealizedGainLoss)} currency={cur} />
               </p>
             </div>
           </CardContent>
@@ -229,7 +247,7 @@ export function AssetDetailView({ detail }: Props) {
               }`}
             >
               {holding.realizedGainLoss >= 0 ? "+" : ""}
-              <Currency amount={Math.abs(holding.realizedGainLoss)} />
+              <Currency amount={Math.abs(holding.realizedGainLoss)} currency={cur} />
             </p>
           </CardContent>
         </Card>
@@ -237,7 +255,7 @@ export function AssetDetailView({ detail }: Props) {
           <CardContent className="p-3">
             <p className="text-xs text-muted-foreground">Dividends</p>
             <p className="text-sm font-semibold mt-0.5 text-blue-600">
-              <Currency amount={holding.dividendsReceived} />
+              <Currency amount={holding.dividendsReceived} currency={cur} />
             </p>
           </CardContent>
         </Card>
@@ -249,7 +267,7 @@ export function AssetDetailView({ detail }: Props) {
                 holding.totalReturn >= 0 ? "text-green-600" : "text-red-600"
               }`}
             >
-              <Currency amount={Math.abs(holding.totalReturn)} /> (
+              <Currency amount={Math.abs(holding.totalReturn)} currency={cur} /> (
               {holding.totalReturnPercentage >= 0 ? "+" : ""}
               {holding.totalReturnPercentage.toFixed(2)}%)
             </p>
@@ -282,24 +300,28 @@ export function AssetDetailView({ detail }: Props) {
         ) : (
           <Card>
             <CardContent className="p-0 divide-y divide-border">
-              {transactions.map((tx: InvestmentTransaction) => (
+              {[...transactions].reverse().map((tx: InvestmentTransaction) => (
                 <div
                   key={tx._id}
                   className="flex items-center justify-between px-4 py-3"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <Badge
-                      className={`text-xs shrink-0 ${TX_TYPE_COLORS[tx.type] ?? ""}`}
+                    <span
+                      className="inline-flex items-center justify-center w-16 shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                      style={{
+                        backgroundColor: TX_TYPE_COLORS[tx.type]?.bg ?? "rgba(128,128,128,0.15)",
+                        color: TX_TYPE_COLORS[tx.type]?.text ?? "rgb(128,128,128)",
+                      }}
                     >
                       {TX_TYPE_LABELS[tx.type] ?? tx.type}
-                    </Badge>
+                    </span>
                     <div className="min-w-0">
                       <p className="text-sm">
                         {tx.quantity ? `${tx.quantity} shares` : ""}
                         {tx.pricePerUnit ? (
                           <>
                             {" "}
-                            @ <Currency amount={tx.pricePerUnit} />
+                            @ <Currency amount={tx.pricePerUnit} currency={cur} />
                           </>
                         ) : (
                           ""
@@ -311,26 +333,30 @@ export function AssetDetailView({ detail }: Props) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <p className="text-sm font-medium">
-                      <Currency amount={tx.totalAmount} />
+                      <Currency amount={tx.totalAmount} currency={cur} />
                     </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => openEdit(tx)}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => handleDelete(tx._id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={<Button variant="ghost" size="icon" className="h-7 w-7" />}
+                      >
+                        <MoreHorizontal className="h-3.5 w-3.5" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(tx)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDelete(tx._id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))}

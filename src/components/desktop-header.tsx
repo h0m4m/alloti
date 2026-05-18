@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import {
+  Home,
   Plus,
   Receipt,
   CalendarClock,
@@ -51,6 +52,7 @@ import { Separator } from "@/components/ui/separator";
 import type { AppNotification } from "@/lib/types";
 
 const NAV_LINKS = [
+  { href: "/", label: "Home", icon: Home },
   { href: "/income", label: "Income", icon: TrendingUp },
   { href: "/recurring", label: "Recurring", icon: CalendarClock },
   { href: "/expenses", label: "Expenses", icon: Receipt },
@@ -84,11 +86,11 @@ export function DesktopSidebar({ notifications, user }: Props) {
         </Link>
 
         <Popover open={createOpen} onOpenChange={setCreateOpen}>
-          <PopoverTrigger className="w-full mb-4">
-            <Button size="sm" className="w-full justify-start gap-2">
-              <Plus className="h-4 w-4" />
-              Create New
-            </Button>
+          <PopoverTrigger
+            render={<Button size="sm" className="w-full justify-start gap-2 mb-4" />}
+          >
+            <Plus className="h-4 w-4" />
+            Create New
           </PopoverTrigger>
           <PopoverContent side="bottom" align="start" sideOffset={4} className="w-48 p-1.5">
             <button
@@ -116,15 +118,15 @@ export function DesktopSidebar({ notifications, user }: Props) {
 
         <nav className="flex flex-col gap-0.5 flex-1">
           {NAV_LINKS.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href || pathname.startsWith(href + "/");
+            const isActive = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
             return (
               <Link key={href} href={href}>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`w-full justify-start gap-2 ${isActive ? "bg-accent text-accent-foreground" : ""}`}
+                  className={`w-full justify-start gap-2 text-sm ${isActive ? "bg-accent text-accent-foreground" : ""}`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4.5 w-4.5" />
                   {label}
                 </Button>
               </Link>

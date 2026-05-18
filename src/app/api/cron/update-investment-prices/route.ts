@@ -3,7 +3,7 @@ import { InvestmentAsset } from "@/lib/models/investment-asset";
 import { InvestmentTransaction } from "@/lib/models/investment-transaction";
 import { PriceSnapshot } from "@/lib/models/price-snapshot";
 import { HoldingSnapshot } from "@/lib/models/holding-snapshot";
-import { FinnhubMarketDataProvider } from "@/lib/market-data";
+import { YahooFinanceProvider } from "@/lib/market-data";
 import {
   calculateHoldingFromTransactions,
   calculateFullHolding,
@@ -17,14 +17,6 @@ export async function GET(request: Request) {
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const apiKey = process.env.FINNHUB_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "FINNHUB_API_KEY not configured" },
-      { status: 500 }
-    );
   }
 
   await connectDB();
@@ -54,7 +46,7 @@ export async function GET(request: Request) {
   }
 
   // Step 2: Fetch quotes
-  const provider = new FinnhubMarketDataProvider(apiKey);
+  const provider = new YahooFinanceProvider();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -73,7 +65,7 @@ export async function GET(request: Request) {
         {
           assetId: asset.id,
           priceDate: today,
-          source: "finnhub",
+          source: "yahoo",
         },
         {
           $set: {
@@ -96,7 +88,7 @@ export async function GET(request: Request) {
     }
 
     // Rate limiting between calls
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   // Step 4: Recalculate holding snapshots for all users

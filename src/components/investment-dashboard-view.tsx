@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -14,10 +14,11 @@ import {
   Briefcase,
   Pencil,
   Trash2,
+  RefreshCw,
+  MoreHorizontal,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -27,6 +28,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/page-header";
 import { Currency } from "@/components/currency";
 import { AddInvestmentTransactionForm } from "@/components/add-investment-transaction-form";
@@ -34,11 +41,20 @@ import { formatDate, formatDateInput } from "@/lib/format";
 import {
   updateInvestmentTransaction,
   deleteInvestmentTransaction,
+  syncPrices,
 } from "@/lib/investment-actions";
+import { ValueChart } from "@/components/value-chart";
 import type { PortfolioDashboard, InvestmentTransaction } from "@/lib/types";
+
+interface ChartPoint {
+  date: string;
+  value: number;
+  cost: number;
+}
 
 interface Props {
   dashboard: PortfolioDashboard;
+  chartData: ChartPoint[];
 }
 
 const TX_TYPE_LABELS: Record<string, string> = {
@@ -47,13 +63,13 @@ const TX_TYPE_LABELS: Record<string, string> = {
   dividend: "Dividend",
 };
 
-const TX_TYPE_COLORS: Record<string, string> = {
-  buy: "bg-green-500/10 text-green-600 border-green-500/20",
-  sell: "bg-red-500/10 text-red-600 border-red-500/20",
-  dividend: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+const TX_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
+  buy: { bg: "rgba(34,197,94,0.15)", text: "rgb(34,197,94)" },
+  sell: { bg: "rgba(239,68,68,0.15)", text: "rgb(239,68,68)" },
+  dividend: { bg: "rgba(59,130,246,0.15)", text: "rgb(59,130,246)" },
 };
 
-export function InvestmentDashboardView({ dashboard }: Props) {
+export function InvestmentDashboardView({ dashboard, chartData }: Props) {
   const router = useRouter();
   const [showAddTx, setShowAddTx] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -109,8 +125,46 @@ export function InvestmentDashboardView({ dashboard }: Props) {
     }
   }
 
+  // Sync prices state
+  const [syncing, setSyncing] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((c) => {
+        if (c <= 1) { clearInterval(timer); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  const handleSync = useCallback(async () => {
+    if (syncing || cooldown > 0) return;
+    setSyncing(true);
+    try {
+      const result = await syncPrices();
+      if (result.success) {
+        toast.success(`Prices updated (${result.updated} symbol${result.updated === 1 ? "" : "s"})`);
+        setCooldown(300); // 5 min
+        router.refresh();
+      } else if (result.error === "cooldown") {
+        setCooldown(result.cooldownRemaining ?? 300);
+        toast.error(`Please wait ${formatCooldown(result.cooldownRemaining ?? 0)}`);
+      } else {
+        toast.error(result.error ?? "Sync failed");
+      }
+    } catch {
+      toast.error("Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  }, [syncing, cooldown, router]);
+
   const hasAccounts = dashboard.accounts.length > 0;
   const hasHoldings = dashboard.holdings.length > 0;
+  const investCurrency = dashboard.accounts[0]?.currency ?? "USD";
   const editNeedsQuantity = editingTx?.type === "buy" || editingTx?.type === "sell";
 
   if (!hasAccounts) {
@@ -164,7 +218,7 @@ export function InvestmentDashboardView({ dashboard }: Props) {
             <div>
               <p className="text-[11px] text-muted-foreground">Portfolio Value</p>
               <p className="text-lg font-bold mt-0.5">
-                <Currency amount={dashboard.totalPortfolioValue} />
+                <Currency amount={dashboard.totalPortfolioValue} currency={investCurrency} />
               </p>
               <div className="flex items-center gap-1 mt-0.5">
                 {dashboard.totalReturn >= 0 ? (
@@ -185,7 +239,7 @@ export function InvestmentDashboardView({ dashboard }: Props) {
             <div>
               <p className="text-[11px] text-muted-foreground">Invested</p>
               <p className="text-lg font-bold mt-0.5">
-                <Currency amount={dashboard.totalInvested} />
+                <Currency amount={dashboard.totalInvested} currency={investCurrency} />
               </p>
             </div>
             <div>
@@ -198,14 +252,14 @@ export function InvestmentDashboardView({ dashboard }: Props) {
                 }`}
               >
                 {dashboard.totalUnrealizedGainLoss >= 0 ? "+" : ""}
-                <Currency amount={Math.abs(dashboard.totalUnrealizedGainLoss)} />
+                <Currency amount={Math.abs(dashboard.totalUnrealizedGainLoss)} currency={investCurrency} />
               </p>
             </div>
             {dashboard.totalDividendsReceived > 0 && (
               <div>
                 <p className="text-[11px] text-muted-foreground">Dividends</p>
                 <p className="text-lg font-bold mt-0.5 text-blue-600">
-                  <Currency amount={dashboard.totalDividendsReceived} />
+                  <Currency amount={dashboard.totalDividendsReceived} currency={investCurrency} />
                 </p>
               </div>
             )}
@@ -216,6 +270,15 @@ export function InvestmentDashboardView({ dashboard }: Props) {
         </CardContent>
       </Card>
 
+      {/* Portfolio Chart */}
+      {chartData.length >= 2 && (
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <ValueChart data={chartData} showCostBasis />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Holdings */}
       {hasHoldings ? (
         <section className="space-y-3">
@@ -223,12 +286,28 @@ export function InvestmentDashboardView({ dashboard }: Props) {
             <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Holdings
             </h2>
-            {dashboard.lastPriceUpdate && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                {formatDate(dashboard.lastPriceUpdate)}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {dashboard.lastPriceUpdate && (
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(dashboard.lastPriceUpdate)}
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                disabled={syncing || cooldown > 0}
+                onClick={handleSync}
+                title={cooldown > 0 ? `Wait ${formatCooldown(cooldown)}` : "Sync prices"}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+              </Button>
+              {cooldown > 0 && (
+                <span className="text-[10px] text-muted-foreground tabular-nums">
+                  {formatCooldown(cooldown)}
+                </span>
+              )}
+            </div>
           </div>
           <Card>
             <CardContent className="p-0 divide-y divide-border">
@@ -236,9 +315,8 @@ export function InvestmentDashboardView({ dashboard }: Props) {
                 <Link
                   key={`${h.investmentAccountId}_${h.assetId}`}
                   href={`/investments/asset/${h.assetId}`}
-                  className="block transition-colors hover:bg-accent/50 first:rounded-t-xl last:rounded-b-xl"
+                  className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-accent/50 first:rounded-t-xl last:rounded-b-xl"
                 >
-                  <div className="flex items-center justify-between p-4">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">
@@ -251,13 +329,13 @@ export function InvestmentDashboardView({ dashboard }: Props) {
                       <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-muted-foreground">
                         <span>{h.quantity.toFixed(2)} shares</span>
                         <span className="hidden sm:inline">
-                          Avg <Currency amount={h.averageCost} />
+                          Avg <Currency amount={h.averageCost} currency={investCurrency} />
                         </span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-semibold">
-                        <Currency amount={h.currentValue} />
+                        <Currency amount={h.currentValue} currency={investCurrency} />
                       </p>
                       <p
                         className={`text-xs ${
@@ -270,7 +348,6 @@ export function InvestmentDashboardView({ dashboard }: Props) {
                         {h.totalReturnPercentage.toFixed(2)}%
                       </p>
                     </div>
-                  </div>
                 </Link>
               ))}
             </CardContent>
@@ -309,11 +386,15 @@ export function InvestmentDashboardView({ dashboard }: Props) {
                   className="flex items-center justify-between px-4 py-3"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <Badge
-                      className={`text-xs shrink-0 ${TX_TYPE_COLORS[tx.type] ?? ""}`}
+                    <span
+                      className="inline-flex items-center justify-center w-16 shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                      style={{
+                        backgroundColor: TX_TYPE_COLORS[tx.type]?.bg ?? "rgba(128,128,128,0.15)",
+                        color: TX_TYPE_COLORS[tx.type]?.text ?? "rgb(128,128,128)",
+                      }}
                     >
                       {TX_TYPE_LABELS[tx.type] ?? tx.type}
-                    </Badge>
+                    </span>
                     <div className="min-w-0">
                       <p className="text-sm truncate">
                         {tx.asset?.symbol ?? "Cash"}{" "}
@@ -327,26 +408,30 @@ export function InvestmentDashboardView({ dashboard }: Props) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <p className="text-sm font-medium">
-                      <Currency amount={tx.totalAmount} />
+                      <Currency amount={tx.totalAmount} currency={investCurrency} />
                     </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => openEdit(tx)}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => handleDelete(tx._id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={<Button variant="ghost" size="icon" className="h-7 w-7" />}
+                      >
+                        <MoreHorizontal className="h-3.5 w-3.5" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(tx)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDelete(tx._id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))}
@@ -462,6 +547,12 @@ const DONUT_COLORS = [
 ];
 
 import type { HoldingData } from "@/lib/types";
+
+function formatCooldown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 function AllocationBar({ holdings }: { holdings: HoldingData[] }) {
   const data = holdings
